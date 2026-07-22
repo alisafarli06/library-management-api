@@ -3,12 +3,14 @@ package com.library.service;
 import com.library.dto.MemberDto;
 import com.library.entity.Member;
 import com.library.exception.ResourceNotFoundException;
+import com.library.mapper.MemberMapper;
 import com.library.repository.MemberRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -31,6 +33,9 @@ class MemberServiceTest {
 
 	@Mock
 	private MemberRepository memberRepository;
+
+	@Spy
+	private MemberMapper memberMapper = new MemberMapper();
 
 	@InjectMocks
 	private MemberService memberService;

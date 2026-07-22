@@ -3,6 +3,7 @@ package com.library.service;
 import com.library.dto.MemberDto;
 import com.library.entity.Member;
 import com.library.exception.ResourceNotFoundException;
+import com.library.mapper.MemberMapper;
 import com.library.repository.MemberRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -12,26 +13,28 @@ import org.springframework.stereotype.Service;
 public class MemberService {
 
 	private final MemberRepository memberRepository;
+	private final MemberMapper memberMapper;
 
-	public MemberService(MemberRepository memberRepository) {
+	public MemberService(MemberRepository memberRepository, MemberMapper memberMapper) {
 		this.memberRepository = memberRepository;
+		this.memberMapper = memberMapper;
 	}
 
 	public Page<MemberDto> findAll(Pageable pageable) {
-		return memberRepository.findAll(pageable).map(this::toDto);
+		return memberRepository.findAll(pageable).map(memberMapper::toDto);
 	}
 
 	public MemberDto findById(Long id) {
 		Member member = memberRepository.findById(id)
 				.orElseThrow(() -> new ResourceNotFoundException("Member not found with id: " + id));
-		return toDto(member);
+		return memberMapper.toDto(member);
 	}
 
 	public MemberDto create(MemberDto memberDto) {
-		Member member = toEntity(memberDto);
+		Member member = memberMapper.toEntity(memberDto);
 		member.setId(null);
 		Member saved = memberRepository.save(member);
-		return toDto(saved);
+		return memberMapper.toDto(saved);
 	}
 
 	public MemberDto update(Long id, MemberDto memberDto) {
@@ -40,7 +43,7 @@ public class MemberService {
 		member.setName(memberDto.getName());
 		member.setEmail(memberDto.getEmail());
 		Member saved = memberRepository.save(member);
-		return toDto(saved);
+		return memberMapper.toDto(saved);
 	}
 
 	public void delete(Long id) {
@@ -48,21 +51,5 @@ public class MemberService {
 			throw new ResourceNotFoundException("Member not found with id: " + id);
 		}
 		memberRepository.deleteById(id);
-	}
-
-	private MemberDto toDto(Member member) {
-		MemberDto dto = new MemberDto();
-		dto.setId(member.getId());
-		dto.setName(member.getName());
-		dto.setEmail(member.getEmail());
-		return dto;
-	}
-
-	private Member toEntity(MemberDto dto) {
-		Member member = new Member();
-		member.setId(dto.getId());
-		member.setName(dto.getName());
-		member.setEmail(dto.getEmail());
-		return member;
 	}
 }

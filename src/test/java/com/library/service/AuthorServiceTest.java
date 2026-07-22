@@ -3,12 +3,14 @@ package com.library.service;
 import com.library.dto.AuthorDto;
 import com.library.entity.Author;
 import com.library.exception.ResourceNotFoundException;
+import com.library.mapper.AuthorMapper;
 import com.library.repository.AuthorRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -31,6 +33,9 @@ class AuthorServiceTest {
 
 	@Mock
 	private AuthorRepository authorRepository;
+
+	@Spy
+	private AuthorMapper authorMapper = new AuthorMapper();
 
 	@InjectMocks
 	private AuthorService authorService;

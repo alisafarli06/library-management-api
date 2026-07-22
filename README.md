@@ -32,6 +32,7 @@ src/main/java/com/library/
 ├── dto/             # Data Transfer Objects
 ├── entity/          # JPA entities
 ├── exception/       # Custom exceptions and global handler
+├── mapper/          # Entity ↔ DTO mappers
 ├── repository/      # Spring Data JPA repositories
 ├── service/         # Business logic
 └── LibraryManagementApiApplication.java
@@ -52,7 +53,7 @@ src/main/java/com/library/
 cp src/main/resources/application.properties.example src/main/resources/application.properties
 ```
 
-3. Edit `application.properties` and set your local PostgreSQL password (`random123`).
+3. Edit `application.properties` and set your local PostgreSQL password (`CHANGE_ME`).
 4. Create the database (see below).
 5. Build and run the application.
 
@@ -80,7 +81,7 @@ spring.application.name=library-management-api
 
 spring.datasource.url=jdbc:postgresql://localhost:5432/library_db
 spring.datasource.username=postgres
-spring.datasource.password=random123
+spring.datasource.password=CHANGE_ME
 
 spring.jpa.hibernate.ddl-auto=update
 spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect

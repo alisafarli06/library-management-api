@@ -2,6 +2,7 @@ package com.library.controller;
 
 import com.library.dto.AuthorDto;
 import com.library.service.AuthorService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -37,12 +38,12 @@ public class AuthorController {
 
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
-	public AuthorDto create(@RequestBody AuthorDto authorDto) {
+	public AuthorDto create(@Valid @RequestBody AuthorDto authorDto) {
 		return authorService.create(authorDto);
 	}
 
 	@PutMapping("/{id}")
-	public AuthorDto update(@PathVariable Long id, @RequestBody AuthorDto authorDto) {
+	public AuthorDto update(@PathVariable Long id, @Valid @RequestBody AuthorDto authorDto) {
 		return authorService.update(id, authorDto);
 	}
 

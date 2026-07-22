@@ -2,6 +2,7 @@ package com.library.controller;
 
 import com.library.dto.BookDto;
 import com.library.service.BookService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -37,12 +38,12 @@ public class BookController {
 
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
-	public BookDto create(@RequestBody BookDto bookDto) {
+	public BookDto create(@Valid @RequestBody BookDto bookDto) {
 		return bookService.create(bookDto);
 	}
 
 	@PutMapping("/{id}")
-	public BookDto update(@PathVariable Long id, @RequestBody BookDto bookDto) {
+	public BookDto update(@PathVariable Long id, @Valid @RequestBody BookDto bookDto) {
 		return bookService.update(id, bookDto);
 	}
 

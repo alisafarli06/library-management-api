@@ -3,11 +3,10 @@ package com.library.service;
 import com.library.dto.BookDto;
 import com.library.entity.Author;
 import com.library.entity.Book;
+import com.library.exception.ResourceNotFoundException;
 import com.library.repository.AuthorRepository;
 import com.library.repository.BookRepository;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -30,7 +29,7 @@ public class BookService {
 
 	public BookDto findById(Long id) {
 		Book book = bookRepository.findById(id)
-				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Book not found"));
+				.orElseThrow(() -> new ResourceNotFoundException("Book not found with id: " + id));
 		return toDto(book);
 	}
 
@@ -44,7 +43,7 @@ public class BookService {
 
 	public BookDto update(Long id, BookDto bookDto) {
 		Book book = bookRepository.findById(id)
-				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Book not found"));
+				.orElseThrow(() -> new ResourceNotFoundException("Book not found with id: " + id));
 		Author author = findAuthor(bookDto.getAuthorId());
 		book.setTitle(bookDto.getTitle());
 		book.setIsbn(bookDto.getIsbn());
@@ -56,14 +55,14 @@ public class BookService {
 
 	public void delete(Long id) {
 		if (!bookRepository.existsById(id)) {
-			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Book not found");
+			throw new ResourceNotFoundException("Book not found with id: " + id);
 		}
 		bookRepository.deleteById(id);
 	}
 
 	private Author findAuthor(Long authorId) {
 		return authorRepository.findById(authorId)
-				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Author not found"));
+				.orElseThrow(() -> new ResourceNotFoundException("Author not found with id: " + authorId));
 	}
 
 	private BookDto toDto(Book book) {

@@ -2,10 +2,9 @@ package com.library.service;
 
 import com.library.dto.MemberDto;
 import com.library.entity.Member;
+import com.library.exception.ResourceNotFoundException;
 import com.library.repository.MemberRepository;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -26,7 +25,7 @@ public class MemberService {
 
 	public MemberDto findById(Long id) {
 		Member member = memberRepository.findById(id)
-				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Member not found"));
+				.orElseThrow(() -> new ResourceNotFoundException("Member not found with id: " + id));
 		return toDto(member);
 	}
 
@@ -39,7 +38,7 @@ public class MemberService {
 
 	public MemberDto update(Long id, MemberDto memberDto) {
 		Member member = memberRepository.findById(id)
-				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Member not found"));
+				.orElseThrow(() -> new ResourceNotFoundException("Member not found with id: " + id));
 		member.setName(memberDto.getName());
 		member.setEmail(memberDto.getEmail());
 		Member saved = memberRepository.save(member);
@@ -48,7 +47,7 @@ public class MemberService {
 
 	public void delete(Long id) {
 		if (!memberRepository.existsById(id)) {
-			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Member not found");
+			throw new ResourceNotFoundException("Member not found with id: " + id);
 		}
 		memberRepository.deleteById(id);
 	}

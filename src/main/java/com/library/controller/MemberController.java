@@ -2,6 +2,7 @@ package com.library.controller;
 
 import com.library.dto.MemberDto;
 import com.library.service.MemberService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -37,12 +38,12 @@ public class MemberController {
 
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
-	public MemberDto create(@RequestBody MemberDto memberDto) {
+	public MemberDto create(@Valid @RequestBody MemberDto memberDto) {
 		return memberService.create(memberDto);
 	}
 
 	@PutMapping("/{id}")
-	public MemberDto update(@PathVariable Long id, @RequestBody MemberDto memberDto) {
+	public MemberDto update(@PathVariable Long id, @Valid @RequestBody MemberDto memberDto) {
 		return memberService.update(id, memberDto);
 	}
 

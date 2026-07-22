@@ -4,9 +4,9 @@ import com.library.dto.AuthorDto;
 import com.library.entity.Author;
 import com.library.exception.ResourceNotFoundException;
 import com.library.repository.AuthorRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 @Service
 public class AuthorService {
@@ -17,10 +17,8 @@ public class AuthorService {
 		this.authorRepository = authorRepository;
 	}
 
-	public List<AuthorDto> findAll() {
-		return authorRepository.findAll().stream()
-				.map(this::toDto)
-				.toList();
+	public Page<AuthorDto> findAll(Pageable pageable) {
+		return authorRepository.findAll(pageable).map(this::toDto);
 	}
 
 	public AuthorDto findById(Long id) {

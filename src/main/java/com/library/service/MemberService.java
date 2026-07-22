@@ -4,9 +4,9 @@ import com.library.dto.MemberDto;
 import com.library.entity.Member;
 import com.library.exception.ResourceNotFoundException;
 import com.library.repository.MemberRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 @Service
 public class MemberService {
@@ -17,10 +17,8 @@ public class MemberService {
 		this.memberRepository = memberRepository;
 	}
 
-	public List<MemberDto> findAll() {
-		return memberRepository.findAll().stream()
-				.map(this::toDto)
-				.toList();
+	public Page<MemberDto> findAll(Pageable pageable) {
+		return memberRepository.findAll(pageable).map(this::toDto);
 	}
 
 	public MemberDto findById(Long id) {

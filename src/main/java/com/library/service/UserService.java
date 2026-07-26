@@ -2,6 +2,7 @@ package com.library.service;
 
 import com.library.dto.UserDto;
 import com.library.entity.User;
+import com.library.exception.ConflictException;
 import com.library.mapper.UserMapper;
 import com.library.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -24,6 +25,10 @@ public class UserService {
 
 	@Transactional
 	public UserDto register(UserDto userDto) {
+		if (userRepository.findByEmail(userDto.getEmail()).isPresent()) {
+			throw new ConflictException("Email already registered: " + userDto.getEmail());
+		}
+
 		User user = userMapper.toEntity(userDto);
 		user.setId(null);
 		user.setPassword(passwordEncoder.encode(userDto.getPassword()));

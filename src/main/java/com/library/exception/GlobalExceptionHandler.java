@@ -1,7 +1,10 @@
 package com.library.exception;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -25,6 +28,28 @@ public class GlobalExceptionHandler {
 		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
 	}
 
+	@ExceptionHandler(ConflictException.class)
+	public ResponseEntity<ErrorResponse> handleConflict(ConflictException ex) {
+		ErrorResponse body = new ErrorResponse(
+				Instant.now(),
+				HttpStatus.CONFLICT.value(),
+				"Conflict",
+				ex.getMessage()
+		);
+		return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+	}
+
+	@ExceptionHandler(DataIntegrityViolationException.class)
+	public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+		ErrorResponse body = new ErrorResponse(
+				Instant.now(),
+				HttpStatus.CONFLICT.value(),
+				"Conflict",
+				"Data integrity violation"
+		);
+		return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+	}
+
 	@ExceptionHandler(MethodArgumentNotValidException.class)
 	public ResponseEntity<ErrorResponse> handleValidationErrors(MethodArgumentNotValidException ex) {
 		Map<String, String> fieldErrors = new HashMap<>();
@@ -40,6 +65,28 @@ public class GlobalExceptionHandler {
 				fieldErrors
 		);
 		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+	}
+
+	@ExceptionHandler(BadCredentialsException.class)
+	public ResponseEntity<ErrorResponse> handleBadCredentials(BadCredentialsException ex) {
+		ErrorResponse body = new ErrorResponse(
+				Instant.now(),
+				HttpStatus.UNAUTHORIZED.value(),
+				"Unauthorized",
+				"Invalid email or password"
+		);
+		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(body);
+	}
+
+	@ExceptionHandler(AuthenticationException.class)
+	public ResponseEntity<ErrorResponse> handleAuthenticationException(AuthenticationException ex) {
+		ErrorResponse body = new ErrorResponse(
+				Instant.now(),
+				HttpStatus.UNAUTHORIZED.value(),
+				"Unauthorized",
+				ex.getMessage()
+		);
+		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(body);
 	}
 
 	@ExceptionHandler(Exception.class)

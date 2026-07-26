@@ -8,3 +8,8 @@ spring.datasource.password=CHANGE_ME
 # JPA / Hibernate
 spring.jpa.hibernate.ddl-auto=update
 spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+
+# JWT
+# Secret must be at least 32 characters for HS256
+app.jwt.secret=CHANGE_ME_TO_A_SECURE_SECRET_KEY_AT_LEAST_32_CHARS
+app.jwt.expiration-ms=86400000

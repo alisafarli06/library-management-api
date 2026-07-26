@@ -10,8 +10,10 @@ import com.library.repository.BookRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Transactional(readOnly = true)
 public class BookService {
 
 	private final BookRepository bookRepository;
@@ -34,6 +36,7 @@ public class BookService {
 		return bookMapper.toDto(book);
 	}
 
+	@Transactional
 	public BookDto create(BookDto bookDto) {
 		Author author = findAuthor(bookDto.getAuthorId());
 		Book book = bookMapper.toEntity(bookDto, author);
@@ -42,6 +45,7 @@ public class BookService {
 		return bookMapper.toDto(saved);
 	}
 
+	@Transactional
 	public BookDto update(Long id, BookDto bookDto) {
 		Book book = bookRepository.findById(id)
 				.orElseThrow(() -> new ResourceNotFoundException("Book not found with id: " + id));
@@ -54,6 +58,7 @@ public class BookService {
 		return bookMapper.toDto(saved);
 	}
 
+	@Transactional
 	public void delete(Long id) {
 		if (!bookRepository.existsById(id)) {
 			throw new ResourceNotFoundException("Book not found with id: " + id);

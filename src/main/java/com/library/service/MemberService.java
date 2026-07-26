@@ -8,8 +8,10 @@ import com.library.repository.MemberRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Transactional(readOnly = true)
 public class MemberService {
 
 	private final MemberRepository memberRepository;
@@ -30,6 +32,7 @@ public class MemberService {
 		return memberMapper.toDto(member);
 	}
 
+	@Transactional
 	public MemberDto create(MemberDto memberDto) {
 		Member member = memberMapper.toEntity(memberDto);
 		member.setId(null);
@@ -37,6 +40,7 @@ public class MemberService {
 		return memberMapper.toDto(saved);
 	}
 
+	@Transactional
 	public MemberDto update(Long id, MemberDto memberDto) {
 		Member member = memberRepository.findById(id)
 				.orElseThrow(() -> new ResourceNotFoundException("Member not found with id: " + id));
@@ -46,6 +50,7 @@ public class MemberService {
 		return memberMapper.toDto(saved);
 	}
 
+	@Transactional
 	public void delete(Long id) {
 		if (!memberRepository.existsById(id)) {
 			throw new ResourceNotFoundException("Member not found with id: " + id);

@@ -17,6 +17,8 @@ import java.time.Instant;
 @Component
 public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
+	public static final String JWT_ERROR_ATTRIBUTE = "jwt.error";
+
 	private final ObjectMapper objectMapper;
 
 	public JwtAuthenticationEntryPoint() {
@@ -28,11 +30,17 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
 			HttpServletRequest request,
 			HttpServletResponse response,
 			AuthenticationException authException) throws IOException {
+		String message = "Unauthorized";
+		Object jwtError = request.getAttribute(JWT_ERROR_ATTRIBUTE);
+		if (jwtError instanceof String customMessage && !customMessage.isBlank()) {
+			message = customMessage;
+		}
+
 		ErrorResponse body = new ErrorResponse(
 				Instant.now(),
 				HttpStatus.UNAUTHORIZED.value(),
 				"Unauthorized",
-				"Unauthorized"
+				message
 		);
 
 		response.setStatus(HttpStatus.UNAUTHORIZED.value());

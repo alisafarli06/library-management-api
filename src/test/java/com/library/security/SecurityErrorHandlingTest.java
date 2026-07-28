@@ -51,6 +51,29 @@ class SecurityErrorHandlingTest {
 	}
 
 	@Test
+	void expiredTokenReturnsUnauthorized() throws Exception {
+		String expiredToken = jwtService.generateToken("user@library.com", -1000L);
+
+		mockMvc.perform(get("/api/user/profile")
+						.header(HttpHeaders.AUTHORIZATION, "Bearer " + expiredToken)
+						.accept(MediaType.APPLICATION_JSON))
+				.andExpect(status().isUnauthorized())
+				.andExpect(jsonPath("$.status").value(401))
+				.andExpect(jsonPath("$.message").value("Token expired"))
+				.andExpect(jsonPath("$.timestamp").exists());
+	}
+
+	@Test
+	void validTokenStillWorks() throws Exception {
+		String token = jwtService.generateToken("user@library.com");
+
+		mockMvc.perform(get("/api/user/profile")
+						.header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+				.andExpect(status().isOk())
+				.andExpect(content().string("User content"));
+	}
+
+	@Test
 	void userAccessingAdminEndpointReturnsForbidden() throws Exception {
 		String token = jwtService.generateToken("user@library.com");
 

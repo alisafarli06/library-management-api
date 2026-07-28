@@ -1,5 +1,6 @@
 package com.library.security;
 
+import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -57,6 +58,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 					SecurityContextHolder.getContext().setAuthentication(authentication);
 				}
 			}
+		} catch (ExpiredJwtException ex) {
+			SecurityContextHolder.clearContext();
+			request.setAttribute(JwtAuthenticationEntryPoint.JWT_ERROR_ATTRIBUTE, "Token expired");
 		} catch (Exception ignored) {
 			SecurityContextHolder.clearContext();
 		}

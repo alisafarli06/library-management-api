@@ -24,8 +24,12 @@ public class JwtService {
 	}
 
 	public String generateToken(String email) {
+		return generateToken(email, expirationMs);
+	}
+
+	public String generateToken(String email, long customExpirationMs) {
 		Date now = new Date();
-		Date expiration = new Date(now.getTime() + expirationMs);
+		Date expiration = new Date(now.getTime() + customExpirationMs);
 
 		return Jwts.builder()
 				.subject(email)

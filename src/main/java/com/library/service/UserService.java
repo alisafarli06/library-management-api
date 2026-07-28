@@ -1,6 +1,7 @@
 package com.library.service;
 
 import com.library.dto.UserDto;
+import com.library.entity.Role;
 import com.library.entity.User;
 import com.library.exception.ConflictException;
 import com.library.mapper.UserMapper;
@@ -31,6 +32,7 @@ public class UserService {
 
 		User user = userMapper.toEntity(userDto);
 		user.setId(null);
+		user.setRole(Role.USER);
 		user.setPassword(passwordEncoder.encode(userDto.getPassword()));
 		User saved = userRepository.save(user);
 		return userMapper.toDto(saved);

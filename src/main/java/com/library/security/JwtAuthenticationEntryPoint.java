@@ -32,7 +32,7 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
 				Instant.now(),
 				HttpStatus.UNAUTHORIZED.value(),
 				"Unauthorized",
-				"Authentication required"
+				"Unauthorized"
 		);
 
 		response.setStatus(HttpStatus.UNAUTHORIZED.value());

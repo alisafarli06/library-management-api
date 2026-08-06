@@ -12,7 +12,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
@@ -22,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.reset;
+
 
 @SpringBootTest
 class BorrowBookTransactionTest {
@@ -66,34 +66,61 @@ class BorrowBookTransactionTest {
 	@AfterEach
 	void tearDown() {
 		reset(bookRepository);
-		if (member != null && member.getId() != null) {
+		if (member != null && member.getId() != null && memberRepository.existsById(member.getId())) {
 			memberRepository.deleteById(member.getId());
 		}
-		if (book != null && book.getId() != null) {
+		if (book != null && book.getId() != null && bookRepository.existsById(book.getId())) {
 			bookRepository.deleteById(book.getId());
 		}
-		if (author != null && author.getId() != null) {
+		if (author != null && author.getId() != null && authorRepository.existsById(author.getId())) {
 			authorRepository.deleteById(author.getId());
 		}
 	}
 
 	@Test
-	@Transactional
 	void borrowBook_successfulTransaction_persistsRelationship() {
+		assertFalse(memberRepository.existsByIdAndBooks_Id(member.getId(), book.getId()));
+
 		memberService.borrowBook(member.getId(), book.getId());
 
 		assertTrue(memberRepository.existsByIdAndBooks_Id(member.getId(), book.getId()));
 		assertTrue(bookRepository.existsByIdAndMembers_Id(book.getId(), member.getId()));
 	}
 
+
 	@Test
-	void borrowBook_whenBookSaveFails_rollsBackRelationship() {
-		doThrow(new RuntimeException("forced failure")).when(bookRepository).save(any(Book.class));
+	void borrowBook_whenBookSaveFails_rollsBackAllChanges() {
+		assertFalse(
+				memberRepository.existsByIdAndBooks_Id(member.getId(), book.getId()),
+				"Before: member must not have borrowed the book"
+		);
+		assertFalse(
+				bookRepository.existsByIdAndMembers_Id(book.getId(), member.getId()),
+				"Before: book must not be linked to the member"
+		);
 
-		assertThrows(RuntimeException.class, () -> memberService.borrowBook(member.getId(), book.getId()));
+		doThrow(new RuntimeException("forced failure during book save"))
+				.when(bookRepository)
+				.save(any(Book.class));
 
-		assertFalse(memberRepository.existsByIdAndBooks_Id(member.getId(), book.getId()));
-		assertTrue(bookRepository.findByMembersIsEmpty().stream()
-				.anyMatch(availableBook -> availableBook.getId().equals(book.getId())));
+		RuntimeException thrown = assertThrows(
+				RuntimeException.class,
+				() -> memberService.borrowBook(member.getId(), book.getId())
+		);
+		assertTrue(thrown.getMessage().contains("forced failure"));
+
+		assertFalse(
+				memberRepository.existsByIdAndBooks_Id(member.getId(), book.getId()),
+				"After rollback: no member_books join row should exist"
+		);
+		assertFalse(
+				bookRepository.existsByIdAndMembers_Id(book.getId(), member.getId()),
+				"After rollback: book must not reference the member"
+		);
+		assertTrue(
+				bookRepository.findByMembersIsEmpty().stream()
+						.anyMatch(availableBook -> availableBook.getId().equals(book.getId())),
+				"After rollback: book must still be available"
+		);
 	}
 }

@@ -1,7 +1,9 @@
 package com.library.entity;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -22,7 +24,11 @@ public class Author {
 	@Column(nullable = false)
 	private String name;
 
-	@OneToMany(mappedBy = "author")
+	@OneToMany(
+			mappedBy = "author",
+			fetch = FetchType.LAZY,
+			cascade = {CascadeType.PERSIST, CascadeType.MERGE}
+	)
 	private List<Book> books = new ArrayList<>();
 
 	public Author() {
@@ -50,5 +56,15 @@ public class Author {
 
 	public void setBooks(List<Book> books) {
 		this.books = books;
+	}
+
+	public void addBook(Book book) {
+		books.add(book);
+		book.setAuthor(this);
+	}
+
+	public void removeBook(Book book) {
+		books.remove(book);
+		book.setAuthor(null);
 	}
 }

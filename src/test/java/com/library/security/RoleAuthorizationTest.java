@@ -40,7 +40,7 @@ class RoleAuthorizationTest {
 
 	@Test
 	void userCannotAccessAdminDashboard() throws Exception {
-		String token = jwtService.generateToken("user@library.com");
+		String token = jwtService.generateToken("user@library.com", Role.USER);
 
 		mockMvc.perform(get("/api/admin/dashboard")
 						.header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
@@ -49,7 +49,7 @@ class RoleAuthorizationTest {
 
 	@Test
 	void adminCanAccessAdminDashboard() throws Exception {
-		String token = jwtService.generateToken("admin@library.com");
+		String token = jwtService.generateToken("admin@library.com", Role.ADMIN);
 
 		mockMvc.perform(get("/api/admin/dashboard")
 						.header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
@@ -59,7 +59,7 @@ class RoleAuthorizationTest {
 
 	@Test
 	void userCanAccessUserProfile() throws Exception {
-		String token = jwtService.generateToken("user@library.com");
+		String token = jwtService.generateToken("user@library.com", Role.USER);
 
 		mockMvc.perform(get("/api/user/profile")
 						.header(HttpHeaders.AUTHORIZATION, "Bearer " + token))

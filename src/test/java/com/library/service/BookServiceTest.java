@@ -1,6 +1,7 @@
 package com.library.service;
 
 import com.library.dto.BookDto;
+import com.library.dto.BookSearchRequest;
 import com.library.entity.Author;
 import com.library.entity.Book;
 import com.library.exception.ResourceNotFoundException;
@@ -25,7 +26,10 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -222,6 +226,41 @@ class BookServiceTest {
 		);
 		assertEquals("Book not found with id: 99", exception.getMessage());
 		verify(bookRepository, never()).deleteById(any());
+	}
+
+	@Test
+	void search_withCombinedFilters_delegatesToRepositoryAndMapsResults() {
+		Author author = createAuthor(1L, "Craig Walls");
+		Book book = createBook(1L, "Spring in Action", "9781617297571", 2022, author);
+		BookSearchRequest request = new BookSearchRequest();
+		request.setTitle("spring");
+		request.setAuthor("craig");
+		Pageable pageable = PageRequest.of(0, 10);
+
+		when(bookRepository.search(eq("spring"), eq("craig"), isNull(), isNull(), isNull(), isNull(), eq(pageable)))
+				.thenReturn(new PageImpl<>(List.of(book)));
+
+		Page<BookDto> result = bookService.search(request, pageable);
+
+		assertEquals(1, result.getTotalElements());
+		assertEquals("Spring in Action", result.getContent().getFirst().getTitle());
+		assertEquals(1L, result.getContent().getFirst().getAuthorId());
+		verify(bookRepository).search(eq("spring"), eq("craig"), isNull(), isNull(), isNull(), isNull(), eq(pageable));
+	}
+
+	@Test
+	void search_whenNoMatches_returnsEmptyPage() {
+		BookSearchRequest request = new BookSearchRequest();
+		request.setTitle("missing");
+		Pageable pageable = PageRequest.of(0, 10);
+
+		when(bookRepository.search(eq("missing"), isNull(), isNull(), isNull(), isNull(), isNull(), eq(pageable)))
+				.thenReturn(Page.empty(pageable));
+
+		Page<BookDto> result = bookService.search(request, pageable);
+
+		assertEquals(0, result.getTotalElements());
+		assertTrue(result.getContent().isEmpty());
 	}
 
 	private Author createAuthor(Long id, String name) {

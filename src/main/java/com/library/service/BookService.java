@@ -1,6 +1,7 @@
 package com.library.service;
 
 import com.library.dto.BookDto;
+import com.library.dto.BookSearchRequest;
 import com.library.entity.Author;
 import com.library.entity.Book;
 import com.library.exception.ResourceNotFoundException;
@@ -11,6 +12,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 @Service
 @Transactional(readOnly = true)
@@ -28,6 +30,18 @@ public class BookService {
 
 	public Page<BookDto> findAll(Pageable pageable) {
 		return bookRepository.findAll(pageable).map(bookMapper::toDto);
+	}
+
+	public Page<BookDto> search(BookSearchRequest request, Pageable pageable) {
+		return bookRepository.search(
+				normalize(request.getTitle()),
+				normalize(request.getAuthor()),
+				request.getPublishedAfter(),
+				request.getYearFrom(),
+				request.getYearTo(),
+				request.getAvailable(),
+				pageable
+		).map(bookMapper::toDto);
 	}
 
 	public BookDto findById(Long id) {
@@ -69,5 +83,9 @@ public class BookService {
 	private Author findAuthor(Long authorId) {
 		return authorRepository.findById(authorId)
 				.orElseThrow(() -> new ResourceNotFoundException("Author not found with id: " + authorId));
+	}
+
+	private String normalize(String value) {
+		return StringUtils.hasText(value) ? value.trim() : null;
 	}
 }

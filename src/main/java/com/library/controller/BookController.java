@@ -1,6 +1,7 @@
 package com.library.controller;
 
 import com.library.dto.BookDto;
+import com.library.dto.BookSearchRequest;
 import com.library.service.BookService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -10,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -20,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/books")
-@Tag(name = "Books", description = "CRUD operations for books")
+@Tag(name = "Books", description = "CRUD operations and search for books")
 public class BookController {
 
 	private final BookService bookService;
@@ -33,6 +35,15 @@ public class BookController {
 	@Operation(summary = "List books", description = "Returns a paginated and sortable list of books")
 	public Page<BookDto> getAll(Pageable pageable) {
 		return bookService.findAll(pageable);
+	}
+
+	@GetMapping("/search")
+	@Operation(
+			summary = "Search books",
+			description = "Filters books by optional title, author, year range, publishedAfter, and availability"
+	)
+	public Page<BookDto> search(@Valid @ModelAttribute BookSearchRequest request, Pageable pageable) {
+		return bookService.search(request, pageable);
 	}
 
 	@GetMapping("/{id}")

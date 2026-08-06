@@ -2,6 +2,7 @@ package com.library.controller;
 
 import com.library.dto.AuthenticationResponse;
 import com.library.dto.LoginRequest;
+import com.library.dto.RefreshTokenRequest;
 import com.library.dto.RegisterRequest;
 import com.library.service.AuthenticationService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -27,14 +28,20 @@ public class AuthController {
 
 	@PostMapping("/register")
 	@ResponseStatus(HttpStatus.CREATED)
-	@Operation(summary = "Register user", description = "Registers a new user and returns a JWT token")
+	@Operation(summary = "Register user", description = "Registers a new user and returns access and refresh tokens")
 	public AuthenticationResponse register(@Valid @RequestBody RegisterRequest request) {
 		return authenticationService.register(request);
 	}
 
 	@PostMapping("/login")
-	@Operation(summary = "Login", description = "Authenticates a user and returns a JWT token")
+	@Operation(summary = "Login", description = "Authenticates a user and returns access and refresh tokens")
 	public AuthenticationResponse login(@Valid @RequestBody LoginRequest request) {
 		return authenticationService.login(request);
+	}
+
+	@PostMapping("/refresh")
+	@Operation(summary = "Refresh tokens", description = "Validates a refresh token and returns a new token pair")
+	public AuthenticationResponse refresh(@Valid @RequestBody RefreshTokenRequest request) {
+		return authenticationService.refresh(request);
 	}
 }

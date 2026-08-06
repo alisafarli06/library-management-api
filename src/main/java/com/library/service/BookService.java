@@ -8,11 +8,12 @@ import com.library.exception.ResourceNotFoundException;
 import com.library.mapper.BookMapper;
 import com.library.repository.AuthorRepository;
 import com.library.repository.BookRepository;
+import com.library.repository.BookSpecifications;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 
 @Service
 @Transactional(readOnly = true)
@@ -33,15 +34,17 @@ public class BookService {
 	}
 
 	public Page<BookDto> search(BookSearchRequest request, Pageable pageable) {
-		return bookRepository.search(
-				normalize(request.getTitle()),
-				normalize(request.getAuthor()),
-				request.getPublishedAfter(),
-				request.getYearFrom(),
-				request.getYearTo(),
-				request.getAvailable(),
-				pageable
-		).map(bookMapper::toDto);
+		Specification<Book> specification = Specification
+				.allOf(
+						BookSpecifications.titleContains(request.getTitle()),
+						BookSpecifications.authorNameContains(request.getAuthor()),
+						BookSpecifications.publishedAfter(request.getPublishedAfter()),
+						BookSpecifications.publishedYearFrom(request.getYearFrom()),
+						BookSpecifications.publishedYearTo(request.getYearTo()),
+						BookSpecifications.availability(request.getAvailable())
+				);
+
+		return bookRepository.findAll(specification, pageable).map(bookMapper::toDto);
 	}
 
 	public BookDto findById(Long id) {
@@ -83,9 +86,5 @@ public class BookService {
 	private Author findAuthor(Long authorId) {
 		return authorRepository.findById(authorId)
 				.orElseThrow(() -> new ResourceNotFoundException("Author not found with id: " + authorId));
-	}
-
-	private String normalize(String value) {
-		return StringUtils.hasText(value) ? value.trim() : null;
 	}
 }

@@ -115,8 +115,10 @@ class BookRepositoryTest {
 
 	@Test
 	void search_combinesTitleAndAuthorFilters() {
-		Page<Book> results = bookRepository.search(
-				"spring", "craig", null, null, null, null, PageRequest.of(0, 10)
+		Page<Book> results = bookRepository.findAll(
+				BookSpecifications.titleContains("spring")
+						.and(BookSpecifications.authorNameContains("craig")),
+				PageRequest.of(0, 10)
 		);
 
 		assertEquals(1, results.getTotalElements());
@@ -125,8 +127,10 @@ class BookRepositoryTest {
 
 	@Test
 	void search_returnsEmptyForConflictingFilters() {
-		Page<Book> results = bookRepository.search(
-				"java", "craig", null, null, null, null, PageRequest.of(0, 10)
+		Page<Book> results = bookRepository.findAll(
+				BookSpecifications.titleContains("java")
+						.and(BookSpecifications.authorNameContains("craig")),
+				PageRequest.of(0, 10)
 		);
 
 		assertTrue(results.isEmpty());
@@ -138,8 +142,11 @@ class BookRepositoryTest {
 		member.borrowBook(effectiveJava);
 		memberRepository.save(member);
 
-		Page<Book> results = bookRepository.search(
-				null, null, null, 2015, 2024, true, PageRequest.of(0, 10)
+		Page<Book> results = bookRepository.findAll(
+				BookSpecifications.publishedYearFrom(2015)
+						.and(BookSpecifications.publishedYearTo(2024))
+						.and(BookSpecifications.availability(true)),
+				PageRequest.of(0, 10)
 		);
 
 		assertEquals(1, results.getTotalElements());

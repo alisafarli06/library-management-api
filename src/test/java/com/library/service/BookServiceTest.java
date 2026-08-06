@@ -19,6 +19,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.util.List;
 import java.util.Optional;
@@ -29,7 +30,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -237,7 +237,7 @@ class BookServiceTest {
 		request.setAuthor("craig");
 		Pageable pageable = PageRequest.of(0, 10);
 
-		when(bookRepository.search(eq("spring"), eq("craig"), isNull(), isNull(), isNull(), isNull(), eq(pageable)))
+		when(bookRepository.findAll(any(Specification.class), eq(pageable)))
 				.thenReturn(new PageImpl<>(List.of(book)));
 
 		Page<BookDto> result = bookService.search(request, pageable);
@@ -245,7 +245,7 @@ class BookServiceTest {
 		assertEquals(1, result.getTotalElements());
 		assertEquals("Spring in Action", result.getContent().getFirst().getTitle());
 		assertEquals(1L, result.getContent().getFirst().getAuthorId());
-		verify(bookRepository).search(eq("spring"), eq("craig"), isNull(), isNull(), isNull(), isNull(), eq(pageable));
+		verify(bookRepository).findAll(any(Specification.class), eq(pageable));
 	}
 
 	@Test
@@ -254,7 +254,7 @@ class BookServiceTest {
 		request.setTitle("missing");
 		Pageable pageable = PageRequest.of(0, 10);
 
-		when(bookRepository.search(eq("missing"), isNull(), isNull(), isNull(), isNull(), isNull(), eq(pageable)))
+		when(bookRepository.findAll(any(Specification.class), eq(pageable)))
 				.thenReturn(Page.empty(pageable));
 
 		Page<BookDto> result = bookService.search(request, pageable);

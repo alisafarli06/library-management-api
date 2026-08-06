@@ -40,7 +40,7 @@ public class BookController {
 	@GetMapping("/search")
 	@Operation(
 			summary = "Search books",
-			description = "Filters books by optional title, author, year range, publishedAfter, and availability"
+			description = "Dynamically filters books by optional title, author, year range, and availability"
 	)
 	public Page<BookDto> search(@Valid @ModelAttribute BookSearchRequest request, Pageable pageable) {
 		return bookService.search(request, pageable);

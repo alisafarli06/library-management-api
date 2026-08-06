@@ -47,15 +47,52 @@ src/main/java/com/library/
 ## Installation Steps
 
 1. Clone the repository.
-2. Copy the sample configuration:
+2. Copy the sample configuration (optional if `application.properties` already exists):
 
 ```bash
 cp src/main/resources/application.properties.example src/main/resources/application.properties
 ```
 
-3. Edit `application.properties` and set your local PostgreSQL password (`CHANGE_ME`).
+3. Set environment variables for your local database and JWT settings (see below). Defaults work for local development if they match your setup.
 4. Create the database (see below).
 5. Build and run the application.
+
+## Environment Variables
+
+Configuration uses environment variables with safe defaults. You can run without setting any variables; Spring will use the defaults in parentheses.
+
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `DB_URL` | JDBC URL | `jdbc:postgresql://localhost:5432/library_db` |
+| `DB_USERNAME` | Database username | `postgres` |
+| `DB_PASSWORD` | Database password | `CHANGE_ME` |
+| `JWT_SECRET` | HMAC signing secret (min. 32 characters) | `CHANGE_ME_TO_A_SECURE_SECRET_KEY_AT_LEAST_32_CHARS` |
+| `JWT_ACCESS_EXPIRATION_MS` | Access token lifetime (ms) | `900000` (15 minutes) |
+| `JWT_REFRESH_EXPIRATION_MS` | Refresh token lifetime (ms) | `604800000` (7 days) |
+
+### Example (Windows PowerShell)
+
+```powershell
+$env:DB_URL="jdbc:postgresql://localhost:5432/library_db"
+$env:DB_USERNAME="postgres"
+$env:DB_PASSWORD="your_password"
+$env:JWT_SECRET="CHANGE_ME_TO_A_SECURE_SECRET_KEY_AT_LEAST_32_CHARS"
+$env:JWT_ACCESS_EXPIRATION_MS="900000"
+$env:JWT_REFRESH_EXPIRATION_MS="604800000"
+```
+
+### Example (Linux / macOS)
+
+```bash
+export DB_URL=jdbc:postgresql://localhost:5432/library_db
+export DB_USERNAME=postgres
+export DB_PASSWORD=your_password
+export JWT_SECRET=CHANGE_ME_TO_A_SECURE_SECRET_KEY_AT_LEAST_32_CHARS
+export JWT_ACCESS_EXPIRATION_MS=900000
+export JWT_REFRESH_EXPIRATION_MS=604800000
+```
+
+Never commit real secrets. Prefer environment variables (or a local untracked override) over putting production passwords in the repo.
 
 ## Database Setup
 
@@ -79,26 +116,19 @@ Tables are created/updated automatically via `spring.jpa.hibernate.ddl-auto=upda
 ```properties
 spring.application.name=library-management-api
 
-spring.datasource.url=jdbc:postgresql://localhost:5432/library_db
-spring.datasource.username=postgres
-spring.datasource.password=CHANGE_ME
+spring.datasource.url=${DB_URL:jdbc:postgresql://localhost:5432/library_db}
+spring.datasource.username=${DB_USERNAME:postgres}
+spring.datasource.password=${DB_PASSWORD:CHANGE_ME}
 
 spring.jpa.hibernate.ddl-auto=update
 spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+
+app.jwt.secret=${JWT_SECRET:CHANGE_ME_TO_A_SECURE_SECRET_KEY_AT_LEAST_32_CHARS}
+app.jwt.access-expiration-ms=${JWT_ACCESS_EXPIRATION_MS:900000}
+app.jwt.refresh-expiration-ms=${JWT_REFRESH_EXPIRATION_MS:604800000}
 ```
 
-Use `application.properties.example` as a template. Never commit a real database password.
-
-You can also override the password at runtime:
-
-```bash
-# Windows PowerShell
-$env:SPRING_DATASOURCE_PASSWORD="your_password"
-
-# Linux / macOS
-export SPRING_DATASOURCE_PASSWORD=your_password
-```
-
+Use `application.properties.example` as a template.
 ## How to Run the Project
 
 ```bash

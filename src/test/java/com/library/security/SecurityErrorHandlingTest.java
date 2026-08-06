@@ -52,7 +52,7 @@ class SecurityErrorHandlingTest {
 
 	@Test
 	void expiredTokenReturnsUnauthorized() throws Exception {
-		String expiredToken = jwtService.generateToken("user@library.com", -1000L);
+		String expiredToken = jwtService.generateToken("user@library.com", Role.USER, -1000L);
 
 		mockMvc.perform(get("/api/user/profile")
 						.header(HttpHeaders.AUTHORIZATION, "Bearer " + expiredToken)
@@ -65,7 +65,7 @@ class SecurityErrorHandlingTest {
 
 	@Test
 	void validTokenStillWorks() throws Exception {
-		String token = jwtService.generateToken("user@library.com");
+		String token = jwtService.generateToken("user@library.com", Role.USER);
 
 		mockMvc.perform(get("/api/user/profile")
 						.header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
@@ -75,7 +75,7 @@ class SecurityErrorHandlingTest {
 
 	@Test
 	void userAccessingAdminEndpointReturnsForbidden() throws Exception {
-		String token = jwtService.generateToken("user@library.com");
+		String token = jwtService.generateToken("user@library.com", Role.USER);
 
 		mockMvc.perform(get("/api/admin/dashboard")
 						.header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
@@ -88,7 +88,7 @@ class SecurityErrorHandlingTest {
 
 	@Test
 	void adminAccessingAdminEndpointReturnsOk() throws Exception {
-		String token = jwtService.generateToken("admin@library.com");
+		String token = jwtService.generateToken("admin@library.com", Role.ADMIN);
 
 		mockMvc.perform(get("/api/admin/dashboard")
 						.header(HttpHeaders.AUTHORIZATION, "Bearer " + token))

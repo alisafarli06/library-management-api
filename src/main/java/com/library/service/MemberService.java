@@ -1,9 +1,12 @@
 package com.library.service;
 
 import com.library.dto.MemberDto;
+import com.library.entity.Book;
 import com.library.entity.Member;
+import com.library.exception.ConflictException;
 import com.library.exception.ResourceNotFoundException;
 import com.library.mapper.MemberMapper;
+import com.library.repository.BookRepository;
 import com.library.repository.MemberRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -15,10 +18,15 @@ import org.springframework.transaction.annotation.Transactional;
 public class MemberService {
 
 	private final MemberRepository memberRepository;
+	private final BookRepository bookRepository;
 	private final MemberMapper memberMapper;
 
-	public MemberService(MemberRepository memberRepository, MemberMapper memberMapper) {
+	public MemberService(
+			MemberRepository memberRepository,
+			BookRepository bookRepository,
+			MemberMapper memberMapper) {
 		this.memberRepository = memberRepository;
+		this.bookRepository = bookRepository;
 		this.memberMapper = memberMapper;
 	}
 
@@ -56,5 +64,28 @@ public class MemberService {
 			throw new ResourceNotFoundException("Member not found with id: " + id);
 		}
 		memberRepository.deleteById(id);
+	}
+
+	/**
+	 * Borrows a book for a member in a single transaction.
+	 * Persists the member–book relationship (member_books) and updates both entity sides.
+	 */
+	@Transactional
+	public void borrowBook(Long memberId, Long bookId) {
+		Member member = memberRepository.findById(memberId)
+				.orElseThrow(() -> new ResourceNotFoundException("Member not found with id: " + memberId));
+		Book book = bookRepository.findById(bookId)
+				.orElseThrow(() -> new ResourceNotFoundException("Book not found with id: " + bookId));
+
+		if (member.getBooks().contains(book)) {
+			throw new ConflictException("Member already borrowed this book");
+		}
+		if (!book.getMembers().isEmpty()) {
+			throw new ConflictException("Book is not available");
+		}
+
+		member.borrowBook(book);
+		memberRepository.save(member);
+		bookRepository.save(book);
 	}
 }

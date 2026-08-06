@@ -60,4 +60,14 @@ public class MemberController {
 	public void delete(@PathVariable Long id) {
 		memberService.delete(id);
 	}
+
+	@PostMapping("/{memberId}/books/{bookId}/borrow")
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@Operation(
+			summary = "Borrow book",
+			description = "Lets a member borrow an available book in a single database transaction"
+	)
+	public void borrowBook(@PathVariable Long memberId, @PathVariable Long bookId) {
+		memberService.borrowBook(memberId, bookId);
+	}
 }

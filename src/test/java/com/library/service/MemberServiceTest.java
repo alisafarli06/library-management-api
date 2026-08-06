@@ -4,6 +4,7 @@ import com.library.dto.MemberDto;
 import com.library.entity.Member;
 import com.library.exception.ResourceNotFoundException;
 import com.library.mapper.MemberMapper;
+import com.library.repository.BookRepository;
 import com.library.repository.MemberRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,6 +34,9 @@ class MemberServiceTest {
 
 	@Mock
 	private MemberRepository memberRepository;
+
+	@Mock
+	private BookRepository bookRepository;
 
 	@Spy
 	private MemberMapper memberMapper = new MemberMapper();

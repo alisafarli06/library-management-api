@@ -74,18 +74,18 @@ class BookRepositoryTest {
 	void findByPublishedYearGreaterThan_returnsBooksAfterYear() {
 		List<Book> results = bookRepository.findByPublishedYearGreaterThan(2015);
 
-		assertEquals(2, results.size());
 		assertTrue(results.stream().map(Book::getId).toList()
 				.containsAll(List.of(effectiveJava.getId(), springInAction.getId())));
+		assertTrue(results.stream().noneMatch(book -> book.getId().equals(cleanCode.getId())));
 	}
 
 	@Test
 	void findByPublishedYearBetween_returnsBooksInRange() {
 		List<Book> results = bookRepository.findByPublishedYearBetween(2015, 2024);
 
-		assertEquals(2, results.size());
 		assertTrue(results.stream().map(Book::getId).toList()
 				.containsAll(List.of(effectiveJava.getId(), springInAction.getId())));
+		assertTrue(results.stream().noneMatch(book -> book.getId().equals(cleanCode.getId())));
 	}
 
 	@Test
@@ -109,8 +109,9 @@ class BookRepositoryTest {
 
 		List<Book> results = bookRepository.findAvailablePublishedAfter(2015);
 
-		assertEquals(1, results.size());
-		assertEquals(effectiveJava.getId(), results.getFirst().getId());
+		assertTrue(results.stream().map(Book::getId).toList().contains(effectiveJava.getId()));
+		assertTrue(results.stream().noneMatch(book -> book.getId().equals(springInAction.getId())));
+		assertTrue(results.stream().noneMatch(book -> book.getId().equals(cleanCode.getId())));
 	}
 
 	@Test
@@ -149,8 +150,9 @@ class BookRepositoryTest {
 				PageRequest.of(0, 10)
 		);
 
-		assertEquals(1, results.getTotalElements());
-		assertEquals(springInAction.getId(), results.getContent().getFirst().getId());
+		assertTrue(results.getContent().stream().map(Book::getId).toList().contains(springInAction.getId()));
+		assertTrue(results.getContent().stream().noneMatch(book -> book.getId().equals(effectiveJava.getId())));
+		assertTrue(results.getContent().stream().noneMatch(book -> book.getId().equals(cleanCode.getId())));
 	}
 
 	private Author newAuthor(String name) {

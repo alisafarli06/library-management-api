@@ -20,6 +20,8 @@ public interface BookRepository extends JpaRepository<Book, Long>, JpaSpecificat
 
 	List<Book> findByMembersIsEmpty();
 
+	boolean existsByIdAndMembers_Id(Long bookId, Long memberId);
+
 	/**
 	 * Available books published after a given year (Checkpoint 2 JPQL example).
 	 */

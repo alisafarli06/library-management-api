@@ -1,5 +1,6 @@
 package com.library.service;
 
+import com.library.config.CacheConfig;
 import com.library.dto.BookDto;
 import com.library.dto.BookSearchRequest;
 import com.library.entity.Author;
@@ -9,6 +10,8 @@ import com.library.mapper.BookMapper;
 import com.library.repository.AuthorRepository;
 import com.library.repository.BookRepository;
 import com.library.repository.BookSpecifications;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -47,6 +50,7 @@ public class BookService {
 		return bookRepository.findAll(specification, pageable).map(bookMapper::toDto);
 	}
 
+	@Cacheable(cacheNames = CacheConfig.BOOKS_CACHE, key = "#id")
 	public BookDto findById(Long id) {
 		Book book = bookRepository.findById(id)
 				.orElseThrow(() -> new ResourceNotFoundException("Book not found with id: " + id));
@@ -63,6 +67,7 @@ public class BookService {
 	}
 
 	@Transactional
+	@CacheEvict(cacheNames = CacheConfig.BOOKS_CACHE, key = "#id")
 	public BookDto update(Long id, BookDto bookDto) {
 		Book book = bookRepository.findById(id)
 				.orElseThrow(() -> new ResourceNotFoundException("Book not found with id: " + id));
@@ -76,6 +81,7 @@ public class BookService {
 	}
 
 	@Transactional
+	@CacheEvict(cacheNames = CacheConfig.BOOKS_CACHE, key = "#id")
 	public void delete(Long id) {
 		if (!bookRepository.existsById(id)) {
 			throw new ResourceNotFoundException("Book not found with id: " + id);

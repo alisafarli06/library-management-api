@@ -27,3 +27,7 @@ app.file.max-size=${FILE_MAX_SIZE:10485760}
 app.file.allowed-content-types=${FILE_ALLOWED_CONTENT_TYPES:image/jpeg,image/png,application/pdf}
 spring.servlet.multipart.max-file-size=${FILE_MAX_SIZE:10485760}
 spring.servlet.multipart.max-request-size=${FILE_MAX_SIZE:10485760}
+
+# Orphaned upload cleanup (daily at 03:00 by default)
+app.file.cleanup.enabled=${FILE_CLEANUP_ENABLED:true}
+app.file.cleanup.cron=${FILE_CLEANUP_CRON:0 0 3 * * *}

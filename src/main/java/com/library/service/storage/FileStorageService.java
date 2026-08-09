@@ -3,6 +3,8 @@ package com.library.service.storage;
 import org.springframework.core.io.Resource;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 public interface FileStorageService {
 
 	/**
@@ -20,4 +22,9 @@ public interface FileStorageService {
 	 * Deletes a stored file if it exists. Missing files are ignored.
 	 */
 	void delete(String storedFilename);
+
+	/**
+	 * Lists names of regular files directly under the storage root (non-recursive).
+	 */
+	List<String> listRegularFilenames();
 }

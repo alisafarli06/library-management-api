@@ -18,6 +18,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.List;
+import java.util.stream.Stream;
 
 @Service
 public class LocalFileStorageService implements FileStorageService {
@@ -68,6 +70,21 @@ public class LocalFileStorageService implements FileStorageService {
 			Files.deleteIfExists(file);
 		} catch (IOException ex) {
 			throw new FileStorageException("Failed to delete stored file", ex);
+		}
+	}
+
+	@Override
+	public List<String> listRegularFilenames() {
+		if (!Files.isDirectory(rootLocation)) {
+			return List.of();
+		}
+		try (Stream<Path> entries = Files.list(rootLocation)) {
+			return entries
+					.filter(Files::isRegularFile)
+					.map(path -> path.getFileName().toString())
+					.toList();
+		} catch (IOException ex) {
+			throw new FileStorageException("Failed to list stored files", ex);
 		}
 	}
 

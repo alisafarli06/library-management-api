@@ -80,4 +80,28 @@ class GlobalExceptionHandlerTest {
 		assertNotNull(body.getTimestamp());
 		assertNull(body.getFieldErrors());
 	}
+
+	@Test
+	void handleBadRequest_returnsBadRequestErrorResponse() {
+		ResponseEntity<ErrorResponse> response =
+				globalExceptionHandler.handleBadRequest(new BadRequestException("File must not be empty"));
+
+		assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+		ErrorResponse body = response.getBody();
+		assertNotNull(body);
+		assertEquals(400, body.getStatus());
+		assertEquals("File must not be empty", body.getMessage());
+	}
+
+	@Test
+	void handleFileStorage_returnsInternalServerErrorWithoutExposingDetails() {
+		ResponseEntity<ErrorResponse> response =
+				globalExceptionHandler.handleFileStorage(new FileStorageException("disk full at /secret/path"));
+
+		assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+		ErrorResponse body = response.getBody();
+		assertNotNull(body);
+		assertEquals(500, body.getStatus());
+		assertEquals("File storage failed", body.getMessage());
+	}
 }

@@ -11,6 +11,8 @@ import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -39,6 +41,42 @@ public class GlobalExceptionHandler {
 				ex.getMessage()
 		);
 		return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+	}
+
+	@ExceptionHandler(BadRequestException.class)
+	public ResponseEntity<ErrorResponse> handleBadRequest(BadRequestException ex) {
+		ErrorResponse body = new ErrorResponse(
+				Instant.now(),
+				HttpStatus.BAD_REQUEST.value(),
+				"Bad Request",
+				ex.getMessage()
+		);
+		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+	}
+
+	@ExceptionHandler({MaxUploadSizeExceededException.class, MultipartException.class})
+	public ResponseEntity<ErrorResponse> handleMultipartErrors(Exception ex) {
+		String message = ex instanceof MaxUploadSizeExceededException
+				? "Uploaded file exceeds the maximum allowed size"
+				: "Invalid multipart request";
+		ErrorResponse body = new ErrorResponse(
+				Instant.now(),
+				HttpStatus.BAD_REQUEST.value(),
+				"Bad Request",
+				message
+		);
+		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+	}
+
+	@ExceptionHandler(FileStorageException.class)
+	public ResponseEntity<ErrorResponse> handleFileStorage(FileStorageException ex) {
+		ErrorResponse body = new ErrorResponse(
+				Instant.now(),
+				HttpStatus.INTERNAL_SERVER_ERROR.value(),
+				"Internal Server Error",
+				"File storage failed"
+		);
+		return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
 	}
 
 	@ExceptionHandler(DataIntegrityViolationException.class)

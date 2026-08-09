@@ -41,3 +41,7 @@ out/
 .env.*
 *.local
 application-local.properties
+
+### Uploaded files ###
+uploads/
+/uploads/**

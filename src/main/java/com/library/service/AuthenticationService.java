@@ -28,16 +28,19 @@ public class AuthenticationService {
 	private final JwtService jwtService;
 	private final AuthenticationManager authenticationManager;
 	private final UserDetailsService userDetailsService;
+	private final EmailNotificationService emailNotificationService;
 
 	public AuthenticationService(
 			UserService userService,
 			JwtService jwtService,
 			AuthenticationManager authenticationManager,
-			UserDetailsService userDetailsService) {
+			UserDetailsService userDetailsService,
+			EmailNotificationService emailNotificationService) {
 		this.userService = userService;
 		this.jwtService = jwtService;
 		this.authenticationManager = authenticationManager;
 		this.userDetailsService = userDetailsService;
+		this.emailNotificationService = emailNotificationService;
 	}
 
 	@Transactional
@@ -48,6 +51,7 @@ public class AuthenticationService {
 		userDto.setPassword(request.getPassword());
 
 		UserDto registeredUser = userService.register(userDto);
+		emailNotificationService.sendWelcomeEmail(registeredUser.getEmail(), registeredUser.getFullName());
 		return issueTokens(registeredUser.getEmail(), Role.USER);
 	}
 

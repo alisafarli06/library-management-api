@@ -10,6 +10,9 @@ REST API for managing authors, books, and library members. Built with Spring Boo
 - Centralized exception handling with consistent JSON error responses
 - Pagination and sorting on list endpoints
 - OpenAPI / Swagger UI documentation
+- Asynchronous welcome-email simulation on user registration (`@Async`)
+- Caffeine-backed book-by-id caching with eviction on successful update/delete
+- Externalized YAML configuration with `dev` / `prod` profiles
 - Unit tests for the service layer and exception handler
 
 ## Technologies Used
@@ -47,32 +50,75 @@ src/main/java/com/library/
 ## Installation Steps
 
 1. Clone the repository.
-2. Copy the sample configuration (optional if `application.properties` already exists):
-
-```bash
-cp src/main/resources/application.properties.example src/main/resources/application.properties
-```
-
-3. Set environment variables for your local database and JWT settings (see below). Defaults work for local development if they match your setup.
+2. Review YAML configuration under `src/main/resources/` (`application.yml`, `application-dev.yml`, `application-prod.yml`).
+3. Set environment variables for your local database and JWT settings (see below). The default profile is `dev`.
 4. Create the database (see below).
 5. Build and run the application.
 
+## Profiles
+
+| Profile | Purpose | Activation |
+|---------|---------|------------|
+| `dev` | Local development (safe defaults) | Default, or `SPRING_PROFILES_ACTIVE=dev` |
+| `prod` | Production deployment (secrets required via env) | `SPRING_PROFILES_ACTIVE=prod` |
+
+### Development
+
+```powershell
+$env:SPRING_PROFILES_ACTIVE="dev"
+$env:DB_PASSWORD="your_password"
+./gradlew bootRun
+```
+
+```bash
+export SPRING_PROFILES_ACTIVE=dev
+export DB_PASSWORD=your_password
+./gradlew bootRun --args='--spring.profiles.active=dev'
+```
+
+### Production
+
+Provide all required secrets via environment variables (no passwords in YAML):
+
+```bash
+export SPRING_PROFILES_ACTIVE=prod
+export DB_URL=jdbc:postgresql://db-host:5432/library_db
+export DB_USERNAME=library_app
+export DB_PASSWORD=...
+export JWT_SECRET=...
+export FILE_STORAGE_DIRECTORY=/var/lib/library/uploads
+./gradlew bootRun --args='--spring.profiles.active=prod'
+```
+
 ## Environment Variables
 
-Configuration uses environment variables with safe defaults. You can run without setting any variables; Spring will use the defaults in parentheses.
+Configuration uses environment variables. Values in the active profile / `application.yml` supply safe defaults for development. Environment variables always override YAML.
 
-| Variable | Purpose | Default |
-|----------|---------|---------|
-| `DB_URL` | JDBC URL | `jdbc:postgresql://localhost:5432/library_db` |
-| `DB_USERNAME` | Database username | `postgres` |
-| `DB_PASSWORD` | Database password | `CHANGE_ME` |
-| `JWT_SECRET` | HMAC signing secret (min. 32 characters) | `CHANGE_ME_TO_A_SECURE_SECRET_KEY_AT_LEAST_32_CHARS` |
-| `JWT_ACCESS_EXPIRATION_MS` | Access token lifetime (ms) | `900000` (15 minutes) |
-| `JWT_REFRESH_EXPIRATION_MS` | Refresh token lifetime (ms) | `604800000` (7 days) |
+| Variable | Purpose | Dev default | Prod |
+|----------|---------|-------------|------|
+| `SPRING_PROFILES_ACTIVE` | Active Spring profile | `dev` | set to `prod` |
+| `DB_URL` | JDBC URL | `jdbc:postgresql://localhost:5432/library_db` | **required** |
+| `DB_USERNAME` | Database username | `postgres` | **required** |
+| `DB_PASSWORD` | Database password | `CHANGE_ME` | **required** |
+| `JWT_SECRET` | HMAC signing secret (min. 32 characters) | placeholder | **required** |
+| `JWT_ACCESS_EXPIRATION_MS` | Access token lifetime (ms) | `900000` | `900000` |
+| `JWT_REFRESH_EXPIRATION_MS` | Refresh token lifetime (ms) | `604800000` | `604800000` |
+| `FILE_STORAGE_DIRECTORY` | Upload storage directory | `uploads` | **required** |
+| `FILE_MAX_SIZE` | Max upload size in bytes | `10485760` | `10485760` |
+| `FILE_ALLOWED_CONTENT_TYPES` | MIME allowlist | `image/jpeg,image/png,application/pdf` | same |
+| `FILE_CLEANUP_ENABLED` | Orphaned-file cleanup | `true` | `true` |
+| `FILE_CLEANUP_CRON` | Cleanup cron | `0 0 3 * * *` | same |
+| `CACHE_BOOKS_MAXIMUM_SIZE` | Book cache max entries | `500` | `500` |
+| `CACHE_BOOKS_EXPIRE_AFTER_WRITE_MINUTES` | Book cache TTL (minutes) | `10` | `10` |
+| `ASYNC_EXECUTOR_CORE_POOL_SIZE` | Async pool core size | `2` | `2` |
+| `ASYNC_EXECUTOR_MAX_POOL_SIZE` | Async pool max size | `4` | `4` |
+| `ASYNC_EXECUTOR_QUEUE_CAPACITY` | Async queue capacity | `100` | `100` |
+| `ASYNC_NOTIFICATION_DELAY_MS` | Simulated email delay (ms) | `500` | `200` |
 
 ### Example (Windows PowerShell)
 
 ```powershell
+$env:SPRING_PROFILES_ACTIVE="dev"
 $env:DB_URL="jdbc:postgresql://localhost:5432/library_db"
 $env:DB_USERNAME="postgres"
 $env:DB_PASSWORD="your_password"
@@ -84,6 +130,7 @@ $env:JWT_REFRESH_EXPIRATION_MS="604800000"
 ### Example (Linux / macOS)
 
 ```bash
+export SPRING_PROFILES_ACTIVE=dev
 export DB_URL=jdbc:postgresql://localhost:5432/library_db
 export DB_USERNAME=postgres
 export DB_PASSWORD=your_password
@@ -109,26 +156,17 @@ Default connection settings assume:
 - Database: `library_db`
 - Username: `postgres`
 
-Tables are created/updated automatically via `spring.jpa.hibernate.ddl-auto=update`.
+Tables are created/updated automatically in the `dev` profile via `spring.jpa.hibernate.ddl-auto=update`. The `prod` profile uses `validate`.
 
-## Application Configuration (`application.properties`)
+## Application Configuration (YAML)
 
-```properties
-spring.application.name=library-management-api
+Shared settings live in `application.yml`. Profile-specific overrides:
 
-spring.datasource.url=${DB_URL:jdbc:postgresql://localhost:5432/library_db}
-spring.datasource.username=${DB_USERNAME:postgres}
-spring.datasource.password=${DB_PASSWORD:CHANGE_ME}
+- `application-dev.yml` — local PostgreSQL defaults, DEBUG logging for `com.library`
+- `application-prod.yml` — requires `DB_*`, `JWT_SECRET`, and `FILE_STORAGE_DIRECTORY` from the environment; `ddl-auto=validate`
 
-spring.jpa.hibernate.ddl-auto=update
-spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+See `application.yml.example` for a short pointer to required production variables.
 
-app.jwt.secret=${JWT_SECRET:CHANGE_ME_TO_A_SECURE_SECRET_KEY_AT_LEAST_32_CHARS}
-app.jwt.access-expiration-ms=${JWT_ACCESS_EXPIRATION_MS:900000}
-app.jwt.refresh-expiration-ms=${JWT_REFRESH_EXPIRATION_MS:604800000}
-```
-
-Use `application.properties.example` as a template.
 ## How to Run the Project
 
 ```bash
@@ -137,8 +175,14 @@ Use `application.properties.example` as a template.
 
 On Windows:
 
-```bash
+```powershell
 .\gradlew.bat bootRun
+```
+
+Or with an explicit profile:
+
+```bash
+./gradlew bootRun --args='--spring.profiles.active=dev'
 ```
 
 The API starts at `http://localhost:8080`.
@@ -181,6 +225,40 @@ After starting the application:
 | POST | `/api/members` | Create member | 201 |
 | PUT | `/api/members/{id}` | Update member | 200 |
 | DELETE | `/api/members/{id}` | Delete member | 204 |
+| POST | `/api/files` | Upload file (multipart `file`) | 201 |
+| GET | `/api/files/{id}` | Download file by ID | 200 |
+
+### File upload / download
+
+- Allowed types: `image/jpeg`, `image/png`, `application/pdf` (configurable)
+- Max size: 10 MB by default (`FILE_MAX_SIZE`)
+- Storage: files on disk under `FILE_STORAGE_DIRECTORY`; metadata in the database
+- Auth: requires a valid JWT (same as other `/api/**` endpoints)
+- Cleanup: a scheduled job deletes orphaned files (on disk but not in `file_metadata`); enabled by default daily at 03:00 (`FILE_CLEANUP_ENABLED`, `FILE_CLEANUP_CRON`)
+
+Example upload (PowerShell):
+
+```powershell
+curl.exe -X POST "http://localhost:8080/api/files" `
+  -H "Authorization: Bearer $token" `
+  -F "file=@./document.pdf"
+```
+
+Example upload (bash):
+
+```bash
+curl -X POST "http://localhost:8080/api/files" \
+  -H "Authorization: Bearer $token" \
+  -F "file=@./document.pdf"
+```
+
+Download:
+
+```bash
+curl -L "http://localhost:8080/api/files/1" \
+  -H "Authorization: Bearer $token" \
+  -o downloaded.pdf
+```
 
 Pagination / sorting example:
 

@@ -1,30 +1,38 @@
 package com.library.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
 
+@Schema(description = "Optional filters for book search (all fields are optional)")
 public class BookSearchRequest {
 
 	@Size(max = 255)
+	@Schema(description = "Case-insensitive partial match on book title", example = "Pride")
 	private String title;
 
 	@Size(max = 255)
+	@Schema(description = "Case-insensitive partial match on author name", example = "Austen")
 	private String author;
 
 	@Min(1000)
 	@Max(9999)
+	@Schema(description = "Return books published after this year (inclusive)", example = "1800")
 	private Integer publishedAfter;
 
 	@Min(1000)
 	@Max(9999)
+	@Schema(description = "Minimum publication year (inclusive)", example = "1800")
 	private Integer yearFrom;
 
 	@Min(1000)
 	@Max(9999)
+	@Schema(description = "Maximum publication year (inclusive)", example = "1900")
 	private Integer yearTo;
 
+	@Schema(description = "When true, only available books; when false, only borrowed books", example = "true")
 	private Boolean available;
 
 	public BookSearchRequest() {

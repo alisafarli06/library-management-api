@@ -1,14 +1,26 @@
 package com.library.exception;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.time.Instant;
 import java.util.Map;
 
+@Schema(description = "Standard API error response")
 public class ErrorResponse {
 
+	@Schema(description = "Time the error occurred", example = "2026-08-12T12:00:00Z")
 	private Instant timestamp;
+
+	@Schema(description = "HTTP status code", example = "404")
 	private int status;
+
+	@Schema(description = "HTTP status reason phrase", example = "Not Found")
 	private String error;
+
+	@Schema(description = "Human-readable error message", example = "Book not found with id: 99")
 	private String message;
+
+	@Schema(description = "Field-level validation errors (present for 400 validation failures)")
 	private Map<String, String> fieldErrors;
 
 	public ErrorResponse() {

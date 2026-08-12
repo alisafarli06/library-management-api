@@ -51,6 +51,26 @@ class SecurityErrorHandlingTest {
 	}
 
 	@Test
+	void swaggerUiIsAccessibleWithoutToken() throws Exception {
+		mockMvc.perform(get("/swagger-ui/index.html"))
+				.andExpect(status().isOk());
+	}
+
+	@Test
+	void openApiDocsAreAccessibleWithoutToken() throws Exception {
+		mockMvc.perform(get("/v3/api-docs").accept(MediaType.APPLICATION_JSON))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.openapi").exists())
+				.andExpect(jsonPath("$.info.title").value("Library Management API"));
+	}
+
+	@Test
+	void protectedApiStillRequiresAuthentication() throws Exception {
+		mockMvc.perform(get("/api/books").accept(MediaType.APPLICATION_JSON))
+				.andExpect(status().isUnauthorized());
+	}
+
+	@Test
 	void expiredTokenReturnsUnauthorized() throws Exception {
 		String expiredToken = jwtService.generateToken("user@library.com", Role.USER, -1000L);
 

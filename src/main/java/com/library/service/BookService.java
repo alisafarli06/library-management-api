@@ -67,7 +67,7 @@ public class BookService {
 	}
 
 	@Transactional
-	@CacheEvict(cacheNames = CacheConfig.BOOKS_CACHE, key = "#id")
+	@CacheEvict(cacheNames = CacheConfig.BOOKS_CACHE, key = "#id", beforeInvocation = false)
 	public BookDto update(Long id, BookDto bookDto) {
 		Book book = bookRepository.findById(id)
 				.orElseThrow(() -> new ResourceNotFoundException("Book not found with id: " + id));
@@ -81,7 +81,7 @@ public class BookService {
 	}
 
 	@Transactional
-	@CacheEvict(cacheNames = CacheConfig.BOOKS_CACHE, key = "#id")
+	@CacheEvict(cacheNames = CacheConfig.BOOKS_CACHE, key = "#id", beforeInvocation = false)
 	public void delete(Long id) {
 		if (!bookRepository.existsById(id)) {
 			throw new ResourceNotFoundException("Book not found with id: " + id);

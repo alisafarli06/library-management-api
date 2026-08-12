@@ -10,6 +10,7 @@ import com.library.repository.BookRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cache.Cache;
@@ -19,10 +20,14 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -65,6 +70,7 @@ class BookServiceCacheTest {
 	@AfterEach
 	void tearDown() {
 		clearBooksCache();
+		reset(bookRepository);
 
 		if (book != null && book.getId() != null && bookRepository.existsById(book.getId())) {
 			bookRepository.deleteById(book.getId());
@@ -75,9 +81,14 @@ class BookServiceCacheTest {
 	}
 
 	@Test
+	void bookService_isSpringAopProxy() {
+		assertTrue(AopUtils.isAopProxy(bookService));
+	}
+
+	@Test
 	void findById_secondCallDoesNotHitRepository() {
 		BookDto first = bookService.findById(book.getId());
-		assertNotNull(cacheManager.getCache(CacheConfig.BOOKS_CACHE).get(book.getId()));
+		assertNotNull(booksCache().get(book.getId()));
 
 		BookDto second = bookService.findById(book.getId());
 
@@ -88,7 +99,9 @@ class BookServiceCacheTest {
 
 	@Test
 	void findById_afterUpdate_reloadsFromRepository() {
-		bookService.findById(book.getId());
+		BookDto cached = bookService.findById(book.getId());
+		assertEquals("Cached Book", cached.getTitle());
+		assertNotNull(booksCache().get(book.getId()));
 
 		BookDto updateRequest = new BookDto();
 		updateRequest.setTitle("Updated Cached Book");
@@ -96,28 +109,70 @@ class BookServiceCacheTest {
 		updateRequest.setPublishedYear(2025);
 		updateRequest.setAuthorId(author.getId());
 		bookService.update(book.getId(), updateRequest);
+
+		assertNull(booksCache().get(book.getId()), "Successful update must evict the books cache entry");
 		clearInvocations(bookRepository);
 
 		BookDto afterUpdate = bookService.findById(book.getId());
 
 		assertEquals("Updated Cached Book", afterUpdate.getTitle());
 		assertEquals(2025, afterUpdate.getPublishedYear());
+		assertNotEquals(cached.getTitle(), afterUpdate.getTitle());
 		verify(bookRepository, times(1)).findById(book.getId());
+		assertNotNull(booksCache().get(book.getId()));
 	}
 
 	@Test
 	void findById_afterDelete_throwsAndDoesNotServeStaleCache() {
 		Long bookId = book.getId();
 		bookService.findById(bookId);
-		assertNotNull(cacheManager.getCache(CacheConfig.BOOKS_CACHE).get(bookId));
+		assertNotNull(booksCache().get(bookId));
 
 		bookService.delete(bookId);
-		assertNull(cacheManager.getCache(CacheConfig.BOOKS_CACHE).get(bookId));
+		assertNull(booksCache().get(bookId), "Successful delete must evict the books cache entry");
 		clearInvocations(bookRepository);
 
 		assertThrows(ResourceNotFoundException.class, () -> bookService.findById(bookId));
 		verify(bookRepository, times(1)).findById(bookId);
 		book = null;
+	}
+
+	@Test
+	void failedUpdate_doesNotEvictExistingCacheEntry() {
+		BookDto cached = bookService.findById(book.getId());
+		assertNotNull(booksCache().get(book.getId()));
+
+		BookDto updateRequest = new BookDto();
+		updateRequest.setTitle("Should Not Persist");
+		updateRequest.setIsbn(book.getIsbn());
+		updateRequest.setPublishedYear(2099);
+		updateRequest.setAuthorId(9_999_999L);
+
+		assertThrows(ResourceNotFoundException.class, () -> bookService.update(book.getId(), updateRequest));
+		assertNotNull(booksCache().get(book.getId()), "Failed update must not evict the cache entry");
+		clearInvocations(bookRepository);
+
+		BookDto fromCache = bookService.findById(book.getId());
+		assertEquals(cached.getTitle(), fromCache.getTitle());
+		assertEquals(cached.getPublishedYear(), fromCache.getPublishedYear());
+		verify(bookRepository, times(0)).findById(book.getId());
+	}
+
+	@Test
+	void failedDelete_doesNotEvictExistingCacheEntry() {
+		BookDto cached = bookService.findById(book.getId());
+		assertNotNull(booksCache().get(book.getId()));
+
+		doThrow(new RuntimeException("Forced delete failure"))
+				.when(bookRepository).deleteById(book.getId());
+
+		assertThrows(RuntimeException.class, () -> bookService.delete(book.getId()));
+		assertNotNull(booksCache().get(book.getId()), "Failed delete must not evict the cache entry");
+		clearInvocations(bookRepository);
+
+		BookDto fromCache = bookService.findById(book.getId());
+		assertEquals(cached.getTitle(), fromCache.getTitle());
+		verify(bookRepository, times(0)).findById(book.getId());
 	}
 
 	@Test
@@ -128,6 +183,12 @@ class BookServiceCacheTest {
 		assertThrows(ResourceNotFoundException.class, () -> bookService.findById(missingId));
 
 		verify(bookRepository, times(2)).findById(missingId);
+	}
+
+	private Cache booksCache() {
+		Cache cache = cacheManager.getCache(CacheConfig.BOOKS_CACHE);
+		assertNotNull(cache);
+		return cache;
 	}
 
 	private void clearBooksCache() {

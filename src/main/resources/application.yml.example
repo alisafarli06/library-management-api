@@ -1,0 +1,13 @@
+# Example configuration (YAML). Copy values into environment variables or local overrides.
+# Do NOT commit real secrets. Prefer:
+#   SPRING_PROFILES_ACTIVE=dev|prod
+# plus DB_*, JWT_*, FILE_*, CACHE_*, ASYNC_* environment variables.
+#
+# See application.yml, application-dev.yml, and application-prod.yml for the live files.
+
+spring:
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
+# Required in production (no defaults in application-prod.yml):
+#   DB_URL, DB_USERNAME, DB_PASSWORD, JWT_SECRET, FILE_STORAGE_DIRECTORY

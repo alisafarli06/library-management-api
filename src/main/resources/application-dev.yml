@@ -1,0 +1,35 @@
+# Local development profile (safe defaults; credentials via environment variables)
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/library_db}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:CHANGE_ME}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    # show-sql: true
+    # properties:
+    #   hibernate:
+    #     format_sql: true
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:CHANGE_ME_TO_A_SECURE_SECRET_KEY_AT_LEAST_32_CHARS}
+  file:
+    storage-directory: ${FILE_STORAGE_DIRECTORY:uploads}
+    cleanup:
+      enabled: ${FILE_CLEANUP_ENABLED:true}
+      cron: ${FILE_CLEANUP_CRON:0 0 3 * * *}
+  async:
+    notification:
+      delay-ms: ${ASYNC_NOTIFICATION_DELAY_MS:500}
+  cache:
+    books:
+      maximum-size: ${CACHE_BOOKS_MAXIMUM_SIZE:500}
+      expire-after-write-minutes: ${CACHE_BOOKS_EXPIRE_AFTER_WRITE_MINUTES:10}
+
+logging:
+  level:
+    root: INFO
+    com.library: DEBUG
+    # org.hibernate.orm.jdbc.bind: TRACE

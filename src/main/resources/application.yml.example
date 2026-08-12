@@ -1,13 +1,65 @@
-# Example configuration (YAML). Copy values into environment variables or local overrides.
-# Do NOT commit real secrets. Prefer:
-#   SPRING_PROFILES_ACTIVE=dev|prod
-# plus DB_*, JWT_*, FILE_*, CACHE_*, ASYNC_* environment variables.
+# =============================================================================
+# Example / reference configuration for the Library Management API
+# =============================================================================
+# This file is documentation only. The live configs are:
+#   - application.yml          (shared defaults)
+#   - application-dev.yml      (local development)
+#   - application-prod.yml     (production — secrets required via env)
 #
-# See application.yml, application-dev.yml, and application-prod.yml for the live files.
+# Copy this pattern into environment variables (recommended) or an untracked
+# local override such as application-local.yml (gitignored).
+#
+# NEVER commit real passwords, JWT secrets, or API keys.
+# =============================================================================
 
 spring:
+  application:
+    name: library-management-api
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
+  datasource:
+    # Dev may use placeholders; prod requires env vars with no unsafe defaults.
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/library_db}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:CHANGE_ME}
+  jpa:
+    hibernate:
+      ddl-auto: update
+  servlet:
+    multipart:
+      max-file-size: ${FILE_MAX_SIZE:10485760}
+      max-request-size: ${FILE_MAX_SIZE:10485760}
 
-# Required in production (no defaults in application-prod.yml):
-#   DB_URL, DB_USERNAME, DB_PASSWORD, JWT_SECRET, FILE_STORAGE_DIRECTORY
+app:
+  jwt:
+    # Use a strong random secret in real environments (minimum 32 characters).
+    secret: ${JWT_SECRET:CHANGE_ME_TO_A_SECURE_SECRET_KEY_AT_LEAST_32_CHARS}
+    access-expiration-ms: ${JWT_ACCESS_EXPIRATION_MS:900000}
+    refresh-expiration-ms: ${JWT_REFRESH_EXPIRATION_MS:604800000}
+  file:
+    storage-directory: ${FILE_STORAGE_DIRECTORY:uploads}
+    max-size: ${FILE_MAX_SIZE:10485760}
+    allowed-content-types: ${FILE_ALLOWED_CONTENT_TYPES:image/jpeg,image/png,application/pdf}
+    cleanup:
+      enabled: ${FILE_CLEANUP_ENABLED:true}
+      cron: ${FILE_CLEANUP_CRON:0 0 3 * * *}
+  cache:
+    books:
+      maximum-size: ${CACHE_BOOKS_MAXIMUM_SIZE:500}
+      expire-after-write-minutes: ${CACHE_BOOKS_EXPIRE_AFTER_WRITE_MINUTES:10}
+  async:
+    executor:
+      core-pool-size: ${ASYNC_EXECUTOR_CORE_POOL_SIZE:2}
+      max-pool-size: ${ASYNC_EXECUTOR_MAX_POOL_SIZE:4}
+      queue-capacity: ${ASYNC_EXECUTOR_QUEUE_CAPACITY:100}
+    notification:
+      delay-ms: ${ASYNC_NOTIFICATION_DELAY_MS:500}
+
+# -----------------------------------------------------------------------------
+# Required environment variables for production (SPRING_PROFILES_ACTIVE=prod):
+#   DB_URL
+#   DB_USERNAME
+#   DB_PASSWORD
+#   JWT_SECRET
+#   FILE_STORAGE_DIRECTORY
+# -----------------------------------------------------------------------------

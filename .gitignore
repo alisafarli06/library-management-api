@@ -42,6 +42,7 @@ out/
 *.local
 application-local.properties
 application-local.yml
+*~
 
 ### Uploaded files ###
 uploads/

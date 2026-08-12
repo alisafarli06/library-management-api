@@ -49,11 +49,12 @@ src/main/java/com/library/
 
 ## Installation Steps
 
-1. Clone the repository.
+1. Clone the repository: `git clone https://github.com/alisafarli06/library-management-api.git`
 2. Review YAML configuration under `src/main/resources/` (`application.yml`, `application-dev.yml`, `application-prod.yml`).
-3. Set environment variables for your local database and JWT settings (see below). The default profile is `dev`.
-4. Create the database (see below).
-5. Build and run the application.
+3. Optionally open `src/main/resources/application.yml.example` for a full environment-variable / placeholder reference.
+4. Set environment variables for your local database and JWT settings (see below). The default profile is `dev`.
+5. Create the database (see below).
+6. Build and run the application.
 
 ## Profiles
 
@@ -165,7 +166,11 @@ Shared settings live in `application.yml`. Profile-specific overrides:
 - `application-dev.yml` — local PostgreSQL defaults, DEBUG logging for `com.library`
 - `application-prod.yml` — requires `DB_*`, `JWT_SECRET`, and `FILE_STORAGE_DIRECTORY` from the environment; `ddl-auto=validate`
 
-See `application.yml.example` for a short pointer to required production variables.
+### Configuration example
+
+See [`src/main/resources/application.yml.example`](src/main/resources/application.yml.example) for a full YAML-shaped example with environment-variable placeholders (`CHANGE_ME`, `${DB_PASSWORD:CHANGE_ME}`, etc.).
+
+That file is documentation only — it is safe to commit because it contains **no real credentials**. Prefer setting values via environment variables (or an untracked `application-local.yml`, which is gitignored).
 
 ## How to Run the Project
 
@@ -199,12 +204,62 @@ The API starts at `http://localhost:8080`.
 ./gradlew build
 ```
 
-## Swagger / OpenAPI
+## Swagger / OpenAPI (required for review)
 
-After starting the application:
+Swagger UI and the OpenAPI document are **public** (no JWT required to open them). Protected API endpoints still require JWT.
 
-- Swagger UI: http://localhost:8080/swagger-ui/index.html
-- OpenAPI JSON: http://localhost:8080/v3/api-docs
+After starting the application, open:
+
+- **Swagger UI:** http://localhost:8080/swagger-ui/index.html
+- **OpenAPI JSON:** http://localhost:8080/v3/api-docs
+
+### Mentor quick start (authenticate in Swagger)
+
+1. Start the app (`./gradlew bootRun`) with a valid `DB_PASSWORD` for your local PostgreSQL.
+2. Open **Swagger UI** (link above). You can browse all endpoints without a token.
+3. Under **Authentication**, call **`POST /api/auth/register`** (or **`POST /api/auth/login`** if you already have a user).
+4. Copy the `accessToken` from the response.
+5. Click **Authorize** (lock icon), enter: `Bearer <accessToken>` (or only the token if the UI already prefixes `Bearer`), then confirm.
+6. Call any protected endpoint (Authors, Books, Members, Files, etc.). Requests will send the JWT automatically.
+
+Public auth endpoints (no JWT):
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/auth/register` | Register and receive access + refresh tokens |
+| POST | `/api/auth/login` | Login and receive access + refresh tokens |
+| POST | `/api/auth/refresh` | Exchange refresh token for a new token pair |
+
+Example register body:
+
+```json
+{
+  "fullName": "Jane Doe",
+  "email": "jane.doe@example.com",
+  "password": "SecurePass123"
+}
+```
+
+Example login body:
+
+```json
+{
+  "email": "jane.doe@example.com",
+  "password": "SecurePass123"
+}
+```
+
+### Security summary
+
+| Path | Access |
+|------|--------|
+| `/api/auth/**` | Public |
+| `/swagger-ui/**`, `/v3/api-docs/**` | Public (documentation only) |
+| `/api/admin/**` | JWT + **ADMIN** role |
+| `/api/user/**` | JWT + **USER** or **ADMIN** |
+| All other `/api/**` | JWT required |
+
+A Postman collection is **not** required for this submission because Swagger/OpenAPI covers interactive API exploration.
 
 ## Example API Endpoints
 

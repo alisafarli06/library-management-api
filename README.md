@@ -32,14 +32,27 @@ REST API for managing authors, books, and library members. Built with Spring Boo
 
 ```
 src/main/java/com/library/
-├── config/          # OpenAPI configuration
-├── controller/      # REST controllers
-├── dto/             # Data Transfer Objects
-├── entity/          # JPA entities
-├── exception/       # Custom exceptions and global handler
-├── mapper/          # Entity ↔ DTO mappers
-├── repository/      # Spring Data JPA repositories
-├── service/         # Business logic
+├── config/                         # Application configuration and properties
+│   ├── openapi/                    # Reusable OpenAPI response annotations
+│   │   ├── RoleRestrictedResponses.java
+│   │   └── StandardAuthenticatedResponses.java
+│   ├── AdminUserInitializer.java
+│   ├── AdminUserProperties.java
+│   ├── AsyncConfig.java
+│   ├── CacheConfig.java
+│   ├── FileStorageProperties.java
+│   ├── OpenApiConfig.java
+│   └── SchedulingConfig.java
+├── controller/                     # REST controllers
+├── dto/                            # Request/response DTOs
+├── entity/                         # JPA entities
+├── exception/                      # Custom exceptions and global handler
+├── mapper/                         # Entity ↔ DTO mappers
+├── repository/                     # Spring Data JPA repositories and Specifications
+├── scheduler/                      # Scheduled jobs (file cleanup)
+├── security/                       # JWT and Spring Security
+├── service/                        # Business logic
+│   └── storage/                    # File storage abstraction and local implementation
 └── LibraryManagementApiApplication.java
 ```
 

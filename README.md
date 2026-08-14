@@ -13,6 +13,7 @@ REST API for managing authors, books, and library members. Built with Spring Boo
 - Asynchronous welcome-email simulation on user registration (`@Async`)
 - Caffeine-backed book-by-id caching with eviction on successful update/delete
 - Externalized YAML configuration with `dev` / `prod` profiles
+- Flyway database migrations
 - Unit tests for the service layer and exception handler
 
 ## Technologies Used
@@ -22,6 +23,7 @@ REST API for managing authors, books, and library members. Built with Spring Boo
 - Spring Web
 - Spring Data JPA
 - PostgreSQL
+- Flyway
 - Gradle
 - springdoc-openapi (Swagger UI)
 - JUnit 5 & Mockito
@@ -53,7 +55,7 @@ src/main/java/com/library/
 2. Review YAML configuration under `src/main/resources/` (`application.yml`, `application-dev.yml`, `application-prod.yml`).
 3. Optionally open `src/main/resources/application.yml.example` for a full environment-variable / placeholder reference.
 4. Set environment variables for your local database and JWT settings (see below). The default profile is `dev`.
-5. Create the database (see below).
+5. Create the PostgreSQL database `library_db` (tables are created by Flyway on startup; do not create application tables by hand).
 6. Build and run the application.
 
 ## Profiles
@@ -157,13 +159,23 @@ Default connection settings assume:
 - Database: `library_db`
 - Username: `postgres`
 
-Tables are created/updated automatically in the `dev` profile via `spring.jpa.hibernate.ddl-auto=update`. The `prod` profile uses `validate`.
+Do **not** create application tables (`authors`, `books`, `members`, and so on) by hand. Flyway creates and updates them when the application starts.
+
+## Database / Flyway
+
+Flyway is the schema source of truth. Hibernate uses `spring.jpa.hibernate.ddl-auto=validate` in all profiles (it does not create or alter tables).
+
+- **Fresh empty `library_db`:** on startup Flyway runs `V1__init_library_schema.sql` and creates the current tables, keys, and foreign keys (including `books.available`).
+- **Existing non-empty databases:** `spring.flyway.baseline-on-migrate=true` with `baseline-version=0` records a baseline, then still runs V1. V1 is idempotent (`CREATE TABLE IF NOT EXISTS` and `ADD COLUMN IF NOT EXISTS`), so existing data is kept.
+- **`books.available`:** included in the V1 `CREATE TABLE`. If Hibernate previously created `books` without that column, V1 adds it with `ALTER TABLE books ADD COLUMN IF NOT EXISTS available BOOLEAN NOT NULL DEFAULT TRUE`.
+
+Do **not** run the migration SQL manually when starting the app (`./gradlew bootRun` applies Flyway). Do not drop or recreate tables to “fix” schema.
 
 ## Application Configuration (YAML)
 
 Shared settings live in `application.yml`. Profile-specific overrides:
 
-- `application-dev.yml` — local PostgreSQL defaults, DEBUG logging for `com.library`
+- `application-dev.yml` — local PostgreSQL defaults, DEBUG logging for `com.library`; `ddl-auto=validate`
 - `application-prod.yml` — requires `DB_*`, `JWT_SECRET`, and `FILE_STORAGE_DIRECTORY` from the environment; `ddl-auto=validate`
 
 ### Configuration example

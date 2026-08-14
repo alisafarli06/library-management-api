@@ -74,7 +74,7 @@ public class MemberService {
 	public void borrowBook(Long memberId, Long bookId) {
 		Member member = memberRepository.findById(memberId)
 				.orElseThrow(() -> new ResourceNotFoundException("Member not found with id: " + memberId));
-		Book book = bookRepository.findById(bookId)
+		Book book = bookRepository.findByIdForUpdate(bookId)
 				.orElseThrow(() -> new ResourceNotFoundException("Book not found with id: " + bookId));
 
 		if (member.getBooks().contains(book)) {

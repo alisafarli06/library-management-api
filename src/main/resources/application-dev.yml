@@ -3,10 +3,10 @@ spring:
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/library_db}
     username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:CHANGE_ME}
+    password: ${DB_PASSWORD:postgres}
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     # show-sql: true
     # properties:
     #   hibernate:

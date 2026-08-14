@@ -24,7 +24,12 @@ spring:
     password: ${DB_PASSWORD:CHANGE_ME}
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    baseline-version: "0"
   servlet:
     multipart:
       max-file-size: ${FILE_MAX_SIZE:10485760}
@@ -62,4 +67,6 @@ app:
 #   DB_PASSWORD
 #   JWT_SECRET
 #   FILE_STORAGE_DIRECTORY
+#
+# Flyway manages schema (classpath:db/migration). Hibernate ddl-auto is validate.
 # -----------------------------------------------------------------------------

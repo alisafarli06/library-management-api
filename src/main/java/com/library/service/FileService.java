@@ -7,6 +7,8 @@ import com.library.exception.BadRequestException;
 import com.library.exception.ResourceNotFoundException;
 import com.library.repository.FileMetadataRepository;
 import com.library.service.storage.FileStorageService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +25,8 @@ import java.util.UUID;
 
 @Service
 public class FileService {
+
+	private static final Logger log = LoggerFactory.getLogger(FileService.class);
 
 	private static final Map<String, String> EXTENSION_TO_CONTENT_TYPE = Map.of(
 			"jpg", "image/jpeg",
@@ -82,6 +86,7 @@ public class FileService {
 			FileMetadata saved = fileMetadataRepository.save(metadata);
 			return toDto(saved);
 		} catch (RuntimeException ex) {
+			log.warn("Upload metadata persist failed; deleting stored file {}", storedFilename);
 			fileStorageService.delete(storedFilename);
 			throw ex;
 		}

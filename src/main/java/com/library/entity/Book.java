@@ -32,6 +32,12 @@ public class Book {
 	@Column(name = "published_year")
 	private Integer publishedYear;
 
+	/**
+	 * Fast availability flag kept in sync with {@code member_books} on the borrow path.
+	 * Search and JPQL still treat a book as available when {@code members} is empty
+	 * (Checkpoint 2). {@code MemberService.borrowBook} updates both representations
+	 * in one transaction: it inserts the join row and sets {@code available = false}.
+	 */
 	@Column(nullable = false)
 	@ColumnDefault("true")
 	private boolean available = true;

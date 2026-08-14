@@ -8,6 +8,8 @@ import com.library.exception.ResourceNotFoundException;
 import com.library.mapper.MemberMapper;
 import com.library.repository.BookRepository;
 import com.library.repository.MemberRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -16,6 +18,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional(readOnly = true)
 public class MemberService {
+
+	private static final Logger log = LoggerFactory.getLogger(MemberService.class);
 
 	private final MemberRepository memberRepository;
 	private final BookRepository bookRepository;
@@ -77,7 +81,7 @@ public class MemberService {
 		Book book = bookRepository.findByIdForUpdate(bookId)
 				.orElseThrow(() -> new ResourceNotFoundException("Book not found with id: " + bookId));
 
-		if (member.getBooks().contains(book)) {
+		if (memberRepository.existsByIdAndBooks_Id(memberId, bookId)) {
 			throw new ConflictException("Member already borrowed this book");
 		}
 		if (!book.isAvailable() || !book.getMembers().isEmpty()) {
@@ -88,5 +92,6 @@ public class MemberService {
 		book.setAvailable(false);
 		memberRepository.save(member);
 		bookRepository.save(book);
+		log.info("Book {} borrowed by member {}", bookId, memberId);
 	}
 }

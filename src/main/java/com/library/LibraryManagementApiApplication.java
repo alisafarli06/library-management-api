@@ -1,12 +1,13 @@
 package com.library;
 
+import com.library.config.AdminUserProperties;
 import com.library.config.FileStorageProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
 @SpringBootApplication
-@EnableConfigurationProperties(FileStorageProperties.class)
+@EnableConfigurationProperties({FileStorageProperties.class, AdminUserProperties.class})
 public class LibraryManagementApiApplication {
 
 	public static void main(String[] args) {

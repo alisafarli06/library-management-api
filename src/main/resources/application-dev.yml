@@ -3,7 +3,7 @@ spring:
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/library_db}
     username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:postgres}
+    password: ${DB_PASSWORD:CHANGE_ME}
   jpa:
     hibernate:
       ddl-auto: validate
@@ -27,6 +27,10 @@ app:
     books:
       maximum-size: ${CACHE_BOOKS_MAXIMUM_SIZE:500}
       expire-after-write-minutes: ${CACHE_BOOKS_EXPIRE_AFTER_WRITE_MINUTES:10}
+  admin:
+    email: ${ADMIN_EMAIL:admin@library.com}
+    full-name: ${ADMIN_FULL_NAME:Library Admin}
+    password: ${ADMIN_PASSWORD:CHANGE_ME_ADMIN_PASSWORD}
 
 logging:
   level:

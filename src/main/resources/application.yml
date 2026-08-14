@@ -39,3 +39,7 @@ app:
       queue-capacity: ${ASYNC_EXECUTOR_QUEUE_CAPACITY:100}
     notification:
       delay-ms: ${ASYNC_NOTIFICATION_DELAY_MS:500}
+  admin:
+    email: ${ADMIN_EMAIL:admin@library.com}
+    full-name: ${ADMIN_FULL_NAME:Library Admin}
+    password: ${ADMIN_PASSWORD:CHANGE_ME_ADMIN_PASSWORD}

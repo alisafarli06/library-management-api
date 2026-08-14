@@ -70,12 +70,14 @@ src/main/java/com/library/
 ```powershell
 $env:SPRING_PROFILES_ACTIVE="dev"
 $env:DB_PASSWORD="your_password"
+$env:ADMIN_PASSWORD="CHANGE_ME_ADMIN_PASSWORD"
 ./gradlew bootRun
 ```
 
 ```bash
 export SPRING_PROFILES_ACTIVE=dev
 export DB_PASSWORD=your_password
+export ADMIN_PASSWORD=CHANGE_ME_ADMIN_PASSWORD
 ./gradlew bootRun --args='--spring.profiles.active=dev'
 ```
 
@@ -89,6 +91,7 @@ export DB_URL=jdbc:postgresql://db-host:5432/library_db
 export DB_USERNAME=library_app
 export DB_PASSWORD=...
 export JWT_SECRET=...
+export ADMIN_PASSWORD=...
 export FILE_STORAGE_DIRECTORY=/var/lib/library/uploads
 ./gradlew bootRun --args='--spring.profiles.active=prod'
 ```
@@ -117,6 +120,9 @@ Configuration uses environment variables. Values in the active profile / `applic
 | `ASYNC_EXECUTOR_MAX_POOL_SIZE` | Async pool max size | `4` | `4` |
 | `ASYNC_EXECUTOR_QUEUE_CAPACITY` | Async queue capacity | `100` | `100` |
 | `ASYNC_NOTIFICATION_DELAY_MS` | Simulated email delay (ms) | `500` | `200` |
+| `ADMIN_EMAIL` | Bootstrap ADMIN user email | `admin@library.com` | `admin@library.com` |
+| `ADMIN_FULL_NAME` | Bootstrap ADMIN display name | `Library Admin` | `Library Admin` |
+| `ADMIN_PASSWORD` | Bootstrap ADMIN password (created only if that email does not exist) | `CHANGE_ME_ADMIN_PASSWORD` | **required** |
 
 ### Example (Windows PowerShell)
 
@@ -144,6 +150,15 @@ export JWT_REFRESH_EXPIRATION_MS=604800000
 
 Never commit real secrets. Prefer environment variables (or a local untracked override) over putting production passwords in the repo.
 
+## Bootstrap ADMIN user
+
+On first startup the application creates an ADMIN user if that email is not already in the database. Credentials come from configuration, not from hardcoded values in Java.
+
+- **Local / `dev`:** email `admin@library.com`, password `CHANGE_ME_ADMIN_PASSWORD` unless you set `ADMIN_PASSWORD`.
+- **Production:** set `ADMIN_PASSWORD` (required). Optionally override `ADMIN_EMAIL` and `ADMIN_FULL_NAME`.
+
+Mentors can log in via `POST /api/auth/login` with that email and password, then use the access token in Swagger **Authorize**. Change the password in any shared or production environment.
+
 ## Database Setup
 
 Create a PostgreSQL database named `library_db`:
@@ -165,7 +180,7 @@ Do **not** create application tables (`authors`, `books`, `members`, and so on) 
 
 Flyway is the schema source of truth. Hibernate uses `spring.jpa.hibernate.ddl-auto=validate` in all profiles (it does not create or alter tables).
 
-- **Fresh empty `library_db`:** on startup Flyway runs `V1__init_library_schema.sql` and creates the current tables, keys, and foreign keys (including `books.available`).
+- **Fresh empty `library_db`:** on startup Flyway runs `V1__init_library_schema.sql` and `V2__add_books_author_id_index.sql` and creates the current tables, keys, foreign keys (including `books.available`), and the `books.author_id` index.
 - **Existing non-empty databases:** `spring.flyway.baseline-on-migrate=true` with `baseline-version=0` records a baseline, then still runs V1. V1 is idempotent (`CREATE TABLE IF NOT EXISTS` and `ADD COLUMN IF NOT EXISTS`), so existing data is kept.
 - **`books.available`:** included in the V1 `CREATE TABLE`. If Hibernate previously created `books` without that column, V1 adds it with `ALTER TABLE books ADD COLUMN IF NOT EXISTS available BOOLEAN NOT NULL DEFAULT TRUE`.
 
@@ -176,7 +191,7 @@ Do **not** run the migration SQL manually when starting the app (`./gradlew boot
 Shared settings live in `application.yml`. Profile-specific overrides:
 
 - `application-dev.yml` — local PostgreSQL defaults, DEBUG logging for `com.library`; `ddl-auto=validate`
-- `application-prod.yml` — requires `DB_*`, `JWT_SECRET`, and `FILE_STORAGE_DIRECTORY` from the environment; `ddl-auto=validate`
+- `application-prod.yml` — requires `DB_*`, `JWT_SECRET`, `FILE_STORAGE_DIRECTORY`, and `ADMIN_PASSWORD` from the environment; `ddl-auto=validate`
 
 ### Configuration example
 

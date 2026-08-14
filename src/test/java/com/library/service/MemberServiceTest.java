@@ -1,7 +1,9 @@
 package com.library.service;
 
 import com.library.dto.MemberDto;
+import com.library.entity.Book;
 import com.library.entity.Member;
+import com.library.exception.ConflictException;
 import com.library.exception.ResourceNotFoundException;
 import com.library.mapper.MemberMapper;
 import com.library.repository.BookRepository;
@@ -22,8 +24,10 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -181,11 +185,79 @@ class MemberServiceTest {
 		verify(memberRepository, never()).deleteById(any());
 	}
 
+	@Test
+	void borrowBook_whenMemberAlreadyBorrowedBook_throwsConflictException() {
+		Member member = createMember(1L, "Ali Safarli", "ali.safarli@gmail.com");
+		Book book = createAvailableBook(10L);
+
+		when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+		when(bookRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(book));
+		when(memberRepository.existsByIdAndBooks_Id(1L, 10L)).thenReturn(true);
+
+		ConflictException exception = assertThrows(
+				ConflictException.class,
+				() -> memberService.borrowBook(1L, 10L)
+		);
+
+		assertEquals("Member already borrowed this book", exception.getMessage());
+		verify(memberRepository, never()).save(any(Member.class));
+		verify(bookRepository, never()).save(any(Book.class));
+	}
+
+	@Test
+	void borrowBook_whenBookIsUnavailable_throwsConflictException() {
+		Member member = createMember(1L, "Ali Safarli", "ali.safarli@gmail.com");
+		Book book = createAvailableBook(10L);
+		book.setAvailable(false);
+
+		when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+		when(bookRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(book));
+		when(memberRepository.existsByIdAndBooks_Id(1L, 10L)).thenReturn(false);
+
+		ConflictException exception = assertThrows(
+				ConflictException.class,
+				() -> memberService.borrowBook(1L, 10L)
+		);
+
+		assertEquals("Book is not available", exception.getMessage());
+		verify(memberRepository, never()).save(any(Member.class));
+		verify(bookRepository, never()).save(any(Book.class));
+	}
+
+	@Test
+	void borrowBook_whenBookIsAvailable_persistsRelationshipAndMarksUnavailable() {
+		Member member = createMember(1L, "Ali Safarli", "ali.safarli@gmail.com");
+		Book book = createAvailableBook(10L);
+
+		when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+		when(bookRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(book));
+		when(memberRepository.existsByIdAndBooks_Id(1L, 10L)).thenReturn(false);
+		when(memberRepository.save(any(Member.class))).thenAnswer(invocation -> invocation.getArgument(0));
+		when(bookRepository.save(any(Book.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+		memberService.borrowBook(1L, 10L);
+
+		assertFalse(book.isAvailable());
+		assertTrue(member.getBooks().contains(book));
+		verify(bookRepository).findByIdForUpdate(10L);
+		verify(memberRepository).save(member);
+		verify(bookRepository).save(book);
+	}
+
 	private Member createMember(Long id, String name, String email) {
 		Member member = new Member();
 		member.setId(id);
 		member.setName(name);
 		member.setEmail(email);
 		return member;
+	}
+
+	private Book createAvailableBook(Long id) {
+		Book book = new Book();
+		book.setId(id);
+		book.setTitle("Clean Code");
+		book.setIsbn("9780132350884");
+		book.setAvailable(true);
+		return book;
 	}
 }

@@ -3,6 +3,7 @@ package com.library.service;
 import com.library.entity.Author;
 import com.library.entity.Book;
 import com.library.entity.Member;
+import com.library.exception.ConflictException;
 import com.library.repository.AuthorRepository;
 import com.library.repository.BookRepository;
 import com.library.repository.MemberRepository;
@@ -78,13 +79,15 @@ class BorrowBookTransactionTest {
 	}
 
 	@Test
-	void borrowBook_successfulTransaction_persistsRelationship() {
+	void borrowBook_successfulTransaction_persistsRelationshipAndMarksBookUnavailable() {
 		assertFalse(memberRepository.existsByIdAndBooks_Id(member.getId(), book.getId()));
+		assertTrue(reloadBook().isAvailable());
 
 		memberService.borrowBook(member.getId(), book.getId());
 
 		assertTrue(memberRepository.existsByIdAndBooks_Id(member.getId(), book.getId()));
 		assertTrue(bookRepository.existsByIdAndMembers_Id(book.getId(), member.getId()));
+		assertFalse(reloadBook().isAvailable(), "books.available must be updated to false");
 	}
 
 
@@ -122,5 +125,23 @@ class BorrowBookTransactionTest {
 						.anyMatch(availableBook -> availableBook.getId().equals(book.getId())),
 				"After rollback: book must still be available"
 		);
+		assertTrue(reloadBook().isAvailable(), "After rollback: books.available must remain true");
+	}
+
+	@Test
+	void borrowBook_whenBookIsUnavailable_isRejected() {
+		book.setAvailable(false);
+		book = bookRepository.save(book);
+
+		assertThrows(ConflictException.class, () -> memberService.borrowBook(member.getId(), book.getId()));
+
+		assertFalse(memberRepository.existsByIdAndBooks_Id(member.getId(), book.getId()));
+		assertFalse(reloadBook().isAvailable());
+		assertTrue(bookRepository.findByMembersIsEmpty().stream()
+				.anyMatch(availableBook -> availableBook.getId().equals(book.getId())));
+	}
+
+	private Book reloadBook() {
+		return bookRepository.findById(book.getId()).orElseThrow();
 	}
 }

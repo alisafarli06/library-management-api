@@ -68,7 +68,7 @@ public class MemberService {
 
 	/**
 	 * Borrows a book for a member in a single transaction.
-	 * Persists the member–book relationship (member_books) and updates both entity sides.
+	 * Inserts the member–book relationship (member_books) and marks the book unavailable.
 	 */
 	@Transactional
 	public void borrowBook(Long memberId, Long bookId) {
@@ -80,11 +80,12 @@ public class MemberService {
 		if (member.getBooks().contains(book)) {
 			throw new ConflictException("Member already borrowed this book");
 		}
-		if (!book.getMembers().isEmpty()) {
+		if (!book.isAvailable() || !book.getMembers().isEmpty()) {
 			throw new ConflictException("Book is not available");
 		}
 
 		member.borrowBook(book);
+		book.setAvailable(false);
 		memberRepository.save(member);
 		bookRepository.save(book);
 	}

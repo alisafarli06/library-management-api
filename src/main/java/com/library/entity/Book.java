@@ -10,6 +10,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.ColumnDefault;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -30,6 +31,10 @@ public class Book {
 
 	@Column(name = "published_year")
 	private Integer publishedYear;
+
+	@Column(nullable = false)
+	@ColumnDefault("true")
+	private boolean available = true;
 
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "author_id", nullable = false)
@@ -71,6 +76,14 @@ public class Book {
 
 	public void setPublishedYear(Integer publishedYear) {
 		this.publishedYear = publishedYear;
+	}
+
+	public boolean isAvailable() {
+		return available;
+	}
+
+	public void setAvailable(boolean available) {
+		this.available = available;
 	}
 
 	public Author getAuthor() {

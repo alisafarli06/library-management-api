@@ -15,6 +15,7 @@ public class BookMapper {
 		dto.setIsbn(book.getIsbn());
 		dto.setPublishedYear(book.getPublishedYear());
 		dto.setAuthorId(book.getAuthor().getId());
+		dto.setAvailable(book.isAvailable());
 		return dto;
 	}
 

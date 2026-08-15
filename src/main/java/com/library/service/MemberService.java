@@ -1,5 +1,6 @@
 package com.library.service;
 
+import com.library.config.CacheConfig;
 import com.library.dto.MemberDto;
 import com.library.entity.Book;
 import com.library.entity.Loan;
@@ -14,6 +15,8 @@ import com.library.repository.MemberRepository;
 import com.library.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -33,18 +36,21 @@ public class MemberService {
 	private final UserRepository userRepository;
 	private final LoanRepository loanRepository;
 	private final MemberMapper memberMapper;
+	private final CacheManager cacheManager;
 
 	public MemberService(
 			MemberRepository memberRepository,
 			BookRepository bookRepository,
 			UserRepository userRepository,
 			LoanRepository loanRepository,
-			MemberMapper memberMapper) {
+			MemberMapper memberMapper,
+			CacheManager cacheManager) {
 		this.memberRepository = memberRepository;
 		this.bookRepository = bookRepository;
 		this.userRepository = userRepository;
 		this.loanRepository = loanRepository;
 		this.memberMapper = memberMapper;
+		this.cacheManager = cacheManager;
 	}
 
 	public Page<MemberDto> findAll(Pageable pageable) {
@@ -118,6 +124,7 @@ public class MemberService {
 		} catch (DataIntegrityViolationException ex) {
 			throw new ConflictException("Member already borrowed this book");
 		}
+		evictBookCache(bookId);
 		log.info("Book {} borrowed by member {}", bookId, memberId);
 	}
 
@@ -136,6 +143,7 @@ public class MemberService {
 		loanRepository.save(loan);
 		memberRepository.save(member);
 		bookRepository.save(book);
+		evictBookCache(bookId);
 		log.info("Book {} returned by member {}", bookId, memberId);
 	}
 
@@ -179,5 +187,12 @@ public class MemberService {
 					member.setUser(user);
 					return memberRepository.save(member);
 				});
+	}
+
+	private void evictBookCache(Long bookId) {
+		Cache cache = cacheManager.getCache(CacheConfig.BOOKS_CACHE);
+		if (cache != null) {
+			cache.evict(bookId);
+		}
 	}
 }

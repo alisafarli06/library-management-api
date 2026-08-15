@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -68,6 +69,7 @@ class BookServiceTest {
 		assertEquals("9780747532699", dto.getIsbn());
 		assertEquals(1997, dto.getPublishedYear());
 		assertEquals(1L, dto.getAuthorId());
+		assertTrue(dto.isAvailable());
 	}
 
 	@Test
@@ -84,6 +86,7 @@ class BookServiceTest {
 		assertEquals(1L, result.getId());
 		assertEquals("Harry Potter and the Philosopher's Stone", result.getTitle());
 		assertEquals(1L, result.getAuthorId());
+		assertTrue(result.isAvailable());
 	}
 
 	@Test
@@ -131,6 +134,29 @@ class BookServiceTest {
 		verify(bookRepository).save(captor.capture());
 		assertNull(captor.getValue().getId());
 		assertEquals(author, captor.getValue().getAuthor());
+		assertTrue(captor.getValue().isAvailable());
+		assertTrue(result.isAvailable());
+	}
+
+	@Test
+	void create_ignoresAvailableFlagFromRequest() {
+		Author author = createAuthor(1L, "Ali Safarli");
+		BookDto request = createBookDto(null, "Harry Potter and the Chamber of Secrets", "9780747538493", 1998, 1L);
+		request.setAvailable(false);
+
+		when(authorRepository.findById(1L)).thenReturn(Optional.of(author));
+		when(bookRepository.save(any(Book.class))).thenAnswer(invocation -> {
+			Book input = invocation.getArgument(0);
+			input.setId(5L);
+			return input;
+		});
+
+		BookDto result = bookService.create(request);
+
+		assertTrue(result.isAvailable());
+		ArgumentCaptor<Book> captor = ArgumentCaptor.forClass(Book.class);
+		verify(bookRepository).save(captor.capture());
+		assertTrue(captor.getValue().isAvailable());
 	}
 
 	@Test
@@ -154,7 +180,9 @@ class BookServiceTest {
 		Author oldAuthor = createAuthor(1L, "Ali Safarli");
 		Author newAuthor = createAuthor(2L, "Omar Ismayilov");
 		Book existing = createBook(1L, "Harry Potter and the Philosopher's Stone", "9780747532699", 1997, oldAuthor);
+		existing.setAvailable(false);
 		BookDto request = createBookDto(null, "Harry Potter and the Chamber of Secrets", "9780747538493", 1998, 2L);
+		request.setAvailable(true);
 
 		when(bookRepository.findById(1L)).thenReturn(Optional.of(existing));
 		when(authorRepository.findById(2L)).thenReturn(Optional.of(newAuthor));
@@ -169,6 +197,7 @@ class BookServiceTest {
 		assertEquals("9780747538493", result.getIsbn());
 		assertEquals(1998, result.getPublishedYear());
 		assertEquals(2L, result.getAuthorId());
+		assertFalse(result.isAvailable());
 		verify(bookRepository).save(existing);
 	}
 
@@ -245,6 +274,7 @@ class BookServiceTest {
 		assertEquals(1, result.getTotalElements());
 		assertEquals("Spring in Action", result.getContent().getFirst().getTitle());
 		assertEquals(1L, result.getContent().getFirst().getAuthorId());
+		assertTrue(result.getContent().getFirst().isAvailable());
 		verify(bookRepository).findAll(any(Specification.class), eq(pageable));
 	}
 

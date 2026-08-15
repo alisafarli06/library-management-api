@@ -19,6 +19,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.cache.CacheManager;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -51,6 +52,9 @@ class MemberServiceTest {
 
 	@Mock
 	private LoanRepository loanRepository;
+
+	@Mock
+	private CacheManager cacheManager;
 
 	@Spy
 	private MemberMapper memberMapper = new MemberMapper();

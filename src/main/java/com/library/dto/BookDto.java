@@ -31,6 +31,12 @@ public class BookDto {
 	@Schema(description = "Identifier of the book's author", example = "1")
 	private Long authorId;
 
+	@Schema(
+			description = "Whether the book can currently be borrowed. Controlled by borrow/return, not by create/update.",
+			example = "true",
+			accessMode = Schema.AccessMode.READ_ONLY)
+	private boolean available;
+
 	public BookDto() {
 	}
 
@@ -72,5 +78,13 @@ public class BookDto {
 
 	public void setAuthorId(Long authorId) {
 		this.authorId = authorId;
+	}
+
+	public boolean isAvailable() {
+		return available;
+	}
+
+	public void setAvailable(boolean available) {
+		this.available = available;
 	}
 }

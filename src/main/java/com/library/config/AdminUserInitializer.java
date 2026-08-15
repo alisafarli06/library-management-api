@@ -3,6 +3,7 @@ package com.library.config;
 import com.library.entity.Role;
 import com.library.entity.User;
 import com.library.repository.UserRepository;
+import com.library.service.MemberService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
@@ -18,14 +19,17 @@ public class AdminUserInitializer implements CommandLineRunner {
 	private final UserRepository userRepository;
 	private final PasswordEncoder passwordEncoder;
 	private final AdminUserProperties adminUserProperties;
+	private final MemberService memberService;
 
 	public AdminUserInitializer(
 			UserRepository userRepository,
 			PasswordEncoder passwordEncoder,
-			AdminUserProperties adminUserProperties) {
+			AdminUserProperties adminUserProperties,
+			MemberService memberService) {
 		this.userRepository = userRepository;
 		this.passwordEncoder = passwordEncoder;
 		this.adminUserProperties = adminUserProperties;
+		this.memberService = memberService;
 	}
 
 	@Override
@@ -36,14 +40,16 @@ public class AdminUserInitializer implements CommandLineRunner {
 			return;
 		}
 
-		if (userRepository.findByEmail(adminEmail).isEmpty()) {
-			User admin = new User();
-			admin.setFullName(adminUserProperties.getFullName());
-			admin.setEmail(adminEmail);
-			admin.setPassword(passwordEncoder.encode(adminUserProperties.getPassword()));
-			admin.setRole(Role.ADMIN);
-			userRepository.save(admin);
+		User admin = userRepository.findByEmail(adminEmail).orElseGet(() -> {
+			User created = new User();
+			created.setFullName(adminUserProperties.getFullName());
+			created.setEmail(adminEmail);
+			created.setPassword(passwordEncoder.encode(adminUserProperties.getPassword()));
+			created.setRole(Role.ADMIN);
+			User saved = userRepository.save(created);
 			log.info("Created bootstrap ADMIN user {}", adminEmail);
-		}
+			return saved;
+		});
+		memberService.ensureMemberForUser(admin);
 	}
 }

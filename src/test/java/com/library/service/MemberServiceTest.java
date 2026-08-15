@@ -3,11 +3,13 @@ package com.library.service;
 import com.library.dto.MemberDto;
 import com.library.entity.Book;
 import com.library.entity.Member;
+import com.library.entity.User;
 import com.library.exception.ConflictException;
 import com.library.exception.ResourceNotFoundException;
 import com.library.mapper.MemberMapper;
 import com.library.repository.BookRepository;
 import com.library.repository.MemberRepository;
+import com.library.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -41,6 +43,9 @@ class MemberServiceTest {
 
 	@Mock
 	private BookRepository bookRepository;
+
+	@Mock
+	private UserRepository userRepository;
 
 	@Spy
 	private MemberMapper memberMapper = new MemberMapper();
@@ -242,6 +247,45 @@ class MemberServiceTest {
 		verify(bookRepository).findByIdForUpdate(10L);
 		verify(memberRepository).save(member);
 		verify(bookRepository).save(book);
+	}
+
+	@Test
+	void borrowBookForAuthenticatedUser_whenMemberMissing_throwsNotFound() {
+		User user = new User();
+		user.setId(7L);
+		user.setEmail("user@library.com");
+		when(userRepository.findByEmail("user@library.com")).thenReturn(Optional.of(user));
+		when(memberRepository.findByUser_Id(7L)).thenReturn(Optional.empty());
+
+		ResourceNotFoundException exception = assertThrows(
+				ResourceNotFoundException.class,
+				() -> memberService.borrowBookForAuthenticatedUser("user@library.com", 10L)
+		);
+
+		assertEquals("Member not found for authenticated user", exception.getMessage());
+		verify(bookRepository, never()).findByIdForUpdate(any());
+	}
+
+	@Test
+	void borrowBookForAuthenticatedUser_whenLinkedMemberExists_reusesBorrowLogic() {
+		User user = new User();
+		user.setId(7L);
+		user.setEmail("user@library.com");
+		Member member = createMember(1L, "Ali Safarli", "user@library.com");
+		Book book = createAvailableBook(10L);
+
+		when(userRepository.findByEmail("user@library.com")).thenReturn(Optional.of(user));
+		when(memberRepository.findByUser_Id(7L)).thenReturn(Optional.of(member));
+		when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+		when(bookRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(book));
+		when(memberRepository.existsByIdAndBooks_Id(1L, 10L)).thenReturn(false);
+		when(memberRepository.save(any(Member.class))).thenAnswer(invocation -> invocation.getArgument(0));
+		when(bookRepository.save(any(Book.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+		memberService.borrowBookForAuthenticatedUser("user@library.com", 10L);
+
+		assertFalse(book.isAvailable());
+		verify(memberRepository).save(member);
 	}
 
 	private Member createMember(Long id, String name, String email) {

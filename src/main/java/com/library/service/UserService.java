@@ -17,11 +17,17 @@ public class UserService {
 	private final UserRepository userRepository;
 	private final UserMapper userMapper;
 	private final PasswordEncoder passwordEncoder;
+	private final MemberService memberService;
 
-	public UserService(UserRepository userRepository, UserMapper userMapper, PasswordEncoder passwordEncoder) {
+	public UserService(
+			UserRepository userRepository,
+			UserMapper userMapper,
+			PasswordEncoder passwordEncoder,
+			MemberService memberService) {
 		this.userRepository = userRepository;
 		this.userMapper = userMapper;
 		this.passwordEncoder = passwordEncoder;
+		this.memberService = memberService;
 	}
 
 	@Transactional
@@ -35,6 +41,7 @@ public class UserService {
 		user.setRole(Role.USER);
 		user.setPassword(passwordEncoder.encode(userDto.getPassword()));
 		User saved = userRepository.save(user);
+		memberService.ensureMemberForUser(saved);
 		return userMapper.toDto(saved);
 	}
 }

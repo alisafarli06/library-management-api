@@ -55,7 +55,7 @@ public class SecurityConfig {
 						.requestMatchers(
 								HttpMethod.POST,
 								"/api/members/{memberId}/books/{bookId}/borrow"
-						).hasAnyRole("USER", "ADMIN")
+						).hasRole("ADMIN")
 						.requestMatchers(HttpMethod.GET, "/api/books/**", "/api/authors/**").authenticated()
 						.requestMatchers("/api/books/**", "/api/authors/**", "/api/members/**").hasRole("ADMIN")
 						.anyRequest().authenticated()

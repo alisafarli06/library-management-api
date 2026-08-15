@@ -117,7 +117,7 @@ class RoleAuthorizationTest {
 	}
 
 	@Test
-	void userCannotManageMembersButCanBorrow() throws Exception {
+	void userCannotManageMembersAndCannotBorrowForAnotherMember() throws Exception {
 		String token = jwtService.generateToken("user@library.com", Role.USER);
 
 		mockMvc.perform(get("/api/members").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
@@ -138,6 +138,11 @@ class RoleAuthorizationTest {
 				.andExpect(status().isForbidden());
 
 		mockMvc.perform(post("/api/members/1/books/1/borrow")
+						.header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+				.andExpect(status().isForbidden())
+				.andExpect(jsonPath("$.message").value("Access denied"));
+
+		mockMvc.perform(post("/api/user/books/1/borrow")
 						.header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
 				.andExpect(status().isNotFound());
 	}

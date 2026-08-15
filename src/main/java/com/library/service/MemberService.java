@@ -3,11 +3,13 @@ package com.library.service;
 import com.library.dto.MemberDto;
 import com.library.entity.Book;
 import com.library.entity.Member;
+import com.library.entity.User;
 import com.library.exception.ConflictException;
 import com.library.exception.ResourceNotFoundException;
 import com.library.mapper.MemberMapper;
 import com.library.repository.BookRepository;
 import com.library.repository.MemberRepository;
+import com.library.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -23,14 +25,17 @@ public class MemberService {
 
 	private final MemberRepository memberRepository;
 	private final BookRepository bookRepository;
+	private final UserRepository userRepository;
 	private final MemberMapper memberMapper;
 
 	public MemberService(
 			MemberRepository memberRepository,
 			BookRepository bookRepository,
+			UserRepository userRepository,
 			MemberMapper memberMapper) {
 		this.memberRepository = memberRepository;
 		this.bookRepository = bookRepository;
+		this.userRepository = userRepository;
 		this.memberMapper = memberMapper;
 	}
 
@@ -93,5 +98,38 @@ public class MemberService {
 		memberRepository.save(member);
 		bookRepository.save(book);
 		log.info("Book {} borrowed by member {}", bookId, memberId);
+	}
+
+	@Transactional
+	public void borrowBookForAuthenticatedUser(String email, Long bookId) {
+		User user = userRepository.findByEmail(email)
+				.orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
+		Member member = memberRepository.findByUser_Id(user.getId())
+				.orElseThrow(() -> new ResourceNotFoundException("Member not found for authenticated user"));
+		borrowBook(member.getId(), bookId);
+	}
+
+	@Transactional
+	public Member ensureMemberForUser(User user) {
+		return memberRepository.findByUser_Id(user.getId())
+				.orElseGet(() -> linkOrCreateMember(user));
+	}
+
+	private Member linkOrCreateMember(User user) {
+		return memberRepository.findByEmail(user.getEmail())
+				.map(existing -> {
+					if (existing.getUser() != null && !user.getId().equals(existing.getUser().getId())) {
+						throw new ConflictException("Email already registered: " + user.getEmail());
+					}
+					existing.setUser(user);
+					return memberRepository.save(existing);
+				})
+				.orElseGet(() -> {
+					Member member = new Member();
+					member.setName(user.getFullName());
+					member.setEmail(user.getEmail());
+					member.setUser(user);
+					return memberRepository.save(member);
+				});
 	}
 }

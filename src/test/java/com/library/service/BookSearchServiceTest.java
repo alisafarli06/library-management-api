@@ -66,7 +66,9 @@ class BookSearchServiceTest {
 	void search_byMultipleFilters_returnsOnlyMatchingBooks() {
 		Member member = memberRepository.save(newMember("Dana", uniqueEmail()));
 		member.borrowBook(springInAction);
+		springInAction.setAvailable(false);
 		memberRepository.save(member);
+		bookRepository.save(springInAction);
 
 		BookSearchRequest request = new BookSearchRequest();
 		request.setTitle("java");

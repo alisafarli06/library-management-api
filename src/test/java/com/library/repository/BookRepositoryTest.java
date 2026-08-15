@@ -141,7 +141,9 @@ class BookRepositoryTest {
 	void search_withYearRangeAndAvailability() {
 		Member member = memberRepository.save(newMember("Carol", uniqueEmail()));
 		member.borrowBook(effectiveJava);
+		effectiveJava.setAvailable(false);
 		memberRepository.save(member);
+		bookRepository.save(effectiveJava);
 
 		Page<Book> results = bookRepository.findAll(
 				BookSpecifications.publishedYearFrom(2015)

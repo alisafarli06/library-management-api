@@ -62,10 +62,7 @@ public final class BookSpecifications {
 			if (available == null) {
 				return null;
 			}
-			if (Boolean.TRUE.equals(available)) {
-				return builder.isEmpty(root.get("members"));
-			}
-			return builder.isNotEmpty(root.get("members"));
+			return builder.equal(root.get("available"), available);
 		};
 	}
 }

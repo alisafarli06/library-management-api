@@ -179,4 +179,23 @@ public class MemberController {
 			@Parameter(description = "Book identifier", required = true, example = "5") @PathVariable Long bookId) {
 		memberService.borrowBook(memberId, bookId);
 	}
+
+	@PostMapping("/{memberId}/books/{bookId}/return")
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@Operation(
+			summary = "Return book",
+			description = "Marks the active loan as returned and makes the book available again."
+	)
+	@ApiResponse(responseCode = "204", description = "Book returned successfully")
+	@ApiResponse(
+			responseCode = "404",
+			description = "Member, book, or active loan not found",
+			content = @Content(
+					mediaType = MediaType.APPLICATION_JSON_VALUE,
+					schema = @Schema(implementation = ErrorResponse.class)))
+	public void returnBook(
+			@Parameter(description = "Member identifier", required = true, example = "1") @PathVariable Long memberId,
+			@Parameter(description = "Book identifier", required = true, example = "5") @PathVariable Long bookId) {
+		memberService.returnBook(memberId, bookId);
+	}
 }

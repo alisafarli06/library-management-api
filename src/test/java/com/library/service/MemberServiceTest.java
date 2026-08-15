@@ -2,12 +2,14 @@ package com.library.service;
 
 import com.library.dto.MemberDto;
 import com.library.entity.Book;
+import com.library.entity.Loan;
 import com.library.entity.Member;
 import com.library.entity.User;
 import com.library.exception.ConflictException;
 import com.library.exception.ResourceNotFoundException;
 import com.library.mapper.MemberMapper;
 import com.library.repository.BookRepository;
+import com.library.repository.LoanRepository;
 import com.library.repository.MemberRepository;
 import com.library.repository.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -46,6 +48,9 @@ class MemberServiceTest {
 
 	@Mock
 	private UserRepository userRepository;
+
+	@Mock
+	private LoanRepository loanRepository;
 
 	@Spy
 	private MemberMapper memberMapper = new MemberMapper();
@@ -197,7 +202,7 @@ class MemberServiceTest {
 
 		when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
 		when(bookRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(book));
-		when(memberRepository.existsByIdAndBooks_Id(1L, 10L)).thenReturn(true);
+		when(loanRepository.existsByMember_IdAndBook_IdAndReturnedAtIsNull(1L, 10L)).thenReturn(true);
 
 		ConflictException exception = assertThrows(
 				ConflictException.class,
@@ -217,6 +222,7 @@ class MemberServiceTest {
 
 		when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
 		when(bookRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(book));
+		when(loanRepository.existsByMember_IdAndBook_IdAndReturnedAtIsNull(1L, 10L)).thenReturn(false);
 		when(memberRepository.existsByIdAndBooks_Id(1L, 10L)).thenReturn(false);
 
 		ConflictException exception = assertThrows(
@@ -236,9 +242,12 @@ class MemberServiceTest {
 
 		when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
 		when(bookRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(book));
+		when(loanRepository.existsByMember_IdAndBook_IdAndReturnedAtIsNull(1L, 10L)).thenReturn(false);
 		when(memberRepository.existsByIdAndBooks_Id(1L, 10L)).thenReturn(false);
+		when(loanRepository.existsByBook_IdAndReturnedAtIsNull(10L)).thenReturn(false);
 		when(memberRepository.save(any(Member.class))).thenAnswer(invocation -> invocation.getArgument(0));
 		when(bookRepository.save(any(Book.class))).thenAnswer(invocation -> invocation.getArgument(0));
+		when(loanRepository.saveAndFlush(any(Loan.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
 		memberService.borrowBook(1L, 10L);
 
@@ -247,6 +256,7 @@ class MemberServiceTest {
 		verify(bookRepository).findByIdForUpdate(10L);
 		verify(memberRepository).save(member);
 		verify(bookRepository).save(book);
+		verify(loanRepository).saveAndFlush(any(Loan.class));
 	}
 
 	@Test
@@ -278,9 +288,12 @@ class MemberServiceTest {
 		when(memberRepository.findByUser_Id(7L)).thenReturn(Optional.of(member));
 		when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
 		when(bookRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(book));
+		when(loanRepository.existsByMember_IdAndBook_IdAndReturnedAtIsNull(1L, 10L)).thenReturn(false);
 		when(memberRepository.existsByIdAndBooks_Id(1L, 10L)).thenReturn(false);
+		when(loanRepository.existsByBook_IdAndReturnedAtIsNull(10L)).thenReturn(false);
 		when(memberRepository.save(any(Member.class))).thenAnswer(invocation -> invocation.getArgument(0));
 		when(bookRepository.save(any(Book.class))).thenAnswer(invocation -> invocation.getArgument(0));
+		when(loanRepository.saveAndFlush(any(Loan.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
 		memberService.borrowBookForAuthenticatedUser("user@library.com", 10L);
 

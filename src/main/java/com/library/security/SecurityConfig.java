@@ -51,10 +51,12 @@ public class SecurityConfig {
 								"/v3/api-docs/**"
 						).permitAll()
 						.requestMatchers("/api/admin/**").hasRole("ADMIN")
+						.requestMatchers("/api/loans", "/api/loans/**").hasRole("ADMIN")
 						.requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN")
 						.requestMatchers(
 								HttpMethod.POST,
-								"/api/members/{memberId}/books/{bookId}/borrow"
+								"/api/members/{memberId}/books/{bookId}/borrow",
+								"/api/members/{memberId}/books/{bookId}/return"
 						).hasRole("ADMIN")
 						.requestMatchers(HttpMethod.GET, "/api/books/**", "/api/authors/**").authenticated()
 						.requestMatchers("/api/books/**", "/api/authors/**", "/api/members/**").hasRole("ADMIN")

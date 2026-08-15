@@ -6,12 +6,14 @@ import com.library.entity.Member;
 import com.library.exception.ConflictException;
 import com.library.repository.AuthorRepository;
 import com.library.repository.BookRepository;
+import com.library.repository.LoanRepository;
 import com.library.repository.MemberRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.util.UUID;
@@ -35,6 +37,9 @@ class BorrowBookTransactionTest {
 
 	@Autowired
 	private AuthorRepository authorRepository;
+
+	@Autowired
+	private LoanRepository loanRepository;
 
 	@MockitoSpyBean
 	private BookRepository bookRepository;
@@ -67,8 +72,12 @@ class BorrowBookTransactionTest {
 	@AfterEach
 	void tearDown() {
 		reset(bookRepository);
-		if (member != null && member.getId() != null && memberRepository.existsById(member.getId())) {
-			memberRepository.deleteById(member.getId());
+		if (member != null && member.getId() != null) {
+			loanRepository.findByMember_Id(member.getId(), Pageable.unpaged()).forEach(loanRepository::delete);
+			loanRepository.flush();
+			if (memberRepository.existsById(member.getId())) {
+				memberRepository.deleteById(member.getId());
+			}
 		}
 		if (book != null && book.getId() != null && bookRepository.existsById(book.getId())) {
 			bookRepository.deleteById(book.getId());

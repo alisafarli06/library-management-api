@@ -7,6 +7,7 @@ import com.library.entity.Role;
 import com.library.entity.User;
 import com.library.repository.AuthorRepository;
 import com.library.repository.BookRepository;
+import com.library.repository.LoanRepository;
 import com.library.repository.MemberRepository;
 import com.library.repository.UserRepository;
 import org.junit.jupiter.api.AfterEach;
@@ -42,6 +43,9 @@ class UserBorrowAuthorizationTest {
 
 	@Autowired
 	private MemberRepository memberRepository;
+
+	@Autowired
+	private LoanRepository loanRepository;
 
 	@Autowired
 	private AuthorRepository authorRepository;
@@ -90,9 +94,13 @@ class UserBorrowAuthorizationTest {
 	@AfterEach
 	void tearDown() {
 		if (borrowerMember != null && borrowerMember.getId() != null) {
+			loanRepository.findByMember_Id(borrowerMember.getId(), org.springframework.data.domain.Pageable.unpaged())
+					.forEach(loanRepository::delete);
 			memberRepository.deleteById(borrowerMember.getId());
 		}
 		if (otherMember != null && otherMember.getId() != null) {
+			loanRepository.findByMember_Id(otherMember.getId(), org.springframework.data.domain.Pageable.unpaged())
+					.forEach(loanRepository::delete);
 			memberRepository.deleteById(otherMember.getId());
 		}
 		if (availableBook != null && availableBook.getId() != null) {

@@ -141,6 +141,19 @@ class RoleAuthorizationTest {
 						.header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
 				.andExpect(status().isForbidden())
 				.andExpect(jsonPath("$.message").value("Access denied"));
+		mockMvc.perform(post("/api/members/1/books/1/return")
+						.header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+				.andExpect(status().isForbidden())
+				.andExpect(jsonPath("$.message").value("Access denied"));
+		mockMvc.perform(get("/api/loans").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+				.andExpect(status().isForbidden());
+		mockMvc.perform(get("/api/user/loans").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+				.andExpect(result -> {
+					int status = result.getResponse().getStatus();
+					if (status != 200 && status != 404) {
+						throw new AssertionError("USER should be allowed to call GET /api/user/loans, got " + status);
+					}
+				});
 
 		mockMvc.perform(post("/api/user/books/1/borrow")
 						.header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
@@ -195,6 +208,11 @@ class RoleAuthorizationTest {
 		mockMvc.perform(post("/api/members/1/books/1/borrow")
 						.header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
 				.andExpect(status().isNotFound());
+		mockMvc.perform(get("/api/loans").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.content").isArray())
+				.andExpect(jsonPath("$.size").exists())
+				.andExpect(jsonPath("$.totalElements").exists());
 	}
 
 	private void createUserIfMissing(String email, String fullName, Role role, String rawPassword) {

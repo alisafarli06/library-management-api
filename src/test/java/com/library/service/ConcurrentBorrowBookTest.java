@@ -6,12 +6,14 @@ import com.library.entity.Member;
 import com.library.exception.ConflictException;
 import com.library.repository.AuthorRepository;
 import com.library.repository.BookRepository;
+import com.library.repository.LoanRepository;
 import com.library.repository.MemberRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.Pageable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,6 +44,9 @@ class ConcurrentBorrowBookTest {
 	@Autowired
 	private BookRepository bookRepository;
 
+	@Autowired
+	private LoanRepository loanRepository;
+
 	private Author author;
 	private Book book;
 	private Member firstMember;
@@ -66,6 +71,8 @@ class ConcurrentBorrowBookTest {
 
 	@AfterEach
 	void tearDown() {
+		deleteLoans(firstMember);
+		deleteLoans(secondMember);
 		deleteIfPresent(firstMember, secondMember);
 		if (book != null && book.getId() != null && bookRepository.existsById(book.getId())) {
 			bookRepository.deleteById(book.getId());
@@ -137,6 +144,14 @@ class ConcurrentBorrowBookTest {
 		member.setName(name);
 		member.setEmail(name.toLowerCase().replace(' ', '-') + "-" + UUID.randomUUID() + "@library.com");
 		return memberRepository.save(member);
+	}
+
+	private void deleteLoans(Member member) {
+		if (member == null || member.getId() == null) {
+			return;
+		}
+		loanRepository.findByMember_Id(member.getId(), Pageable.unpaged()).forEach(loanRepository::delete);
+		loanRepository.flush();
 	}
 
 	private void deleteIfPresent(Member... members) {

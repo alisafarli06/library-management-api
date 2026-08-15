@@ -50,6 +50,7 @@ public class OpenApiConfig {
 						new Tag().name("Authors").description("Author CRUD operations (JWT required)"),
 						new Tag().name("Books").description("Book CRUD and search (JWT required)"),
 						new Tag().name("Members").description("Member CRUD and book borrowing (JWT required)"),
+						new Tag().name("Loans").description("Loan history (ADMIN)"),
 						new Tag().name("Files").description("Multipart file upload and download (JWT required)"),
 						new Tag().name("Admin").description("Admin-only endpoints (ADMIN role)"),
 						new Tag().name("User").description("User profile endpoints (USER or ADMIN role)")

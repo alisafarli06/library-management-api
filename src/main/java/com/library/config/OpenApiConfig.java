@@ -30,7 +30,7 @@ public class OpenApiConfig {
 								**Public endpoints:** `/api/auth/**` (no JWT required).
 
 								**Role-restricted endpoints:**
-								- `/api/admin/**` — ADMIN role only
+								- `/api/admin/**` — ADMIN role only (includes `/api/admin/analytics/**`)
 								- `/api/user/**` — USER or ADMIN role
 
 								**Pagination & sorting:** List and search endpoints accept Spring Data \
@@ -53,6 +53,7 @@ public class OpenApiConfig {
 						new Tag().name("Loans").description("Loan history (ADMIN)"),
 						new Tag().name("Files").description("Multipart file upload and download (JWT required)"),
 						new Tag().name("Admin").description("Admin-only endpoints (ADMIN role)"),
+						new Tag().name("Analytics").description("Borrowing analytics from Loan history (ADMIN role)"),
 						new Tag().name("User").description("User profile endpoints (USER or ADMIN role)")
 				));
 	}

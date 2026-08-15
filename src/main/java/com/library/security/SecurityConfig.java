@@ -2,6 +2,7 @@ package com.library.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -51,6 +52,12 @@ public class SecurityConfig {
 						).permitAll()
 						.requestMatchers("/api/admin/**").hasRole("ADMIN")
 						.requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN")
+						.requestMatchers(
+								HttpMethod.POST,
+								"/api/members/{memberId}/books/{bookId}/borrow"
+						).hasAnyRole("USER", "ADMIN")
+						.requestMatchers(HttpMethod.GET, "/api/books/**", "/api/authors/**").authenticated()
+						.requestMatchers("/api/books/**", "/api/authors/**", "/api/members/**").hasRole("ADMIN")
 						.anyRequest().authenticated()
 				)
 				.authenticationProvider(authenticationProvider)

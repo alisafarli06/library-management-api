@@ -54,6 +54,10 @@ public interface LoanRepository extends JpaRepository<Loan, Long>, JpaSpecificat
 			countQuery = "SELECT COUNT(DISTINCT l.book.id) FROM Loan l")
 	Page<BookBorrowAnalyticsDto> findMostBorrowedBooks(Pageable pageable);
 
+	/**
+	 * Aggregates loan rows through book → author (ManyToOne on {@code Book.author}).
+	 * Counts are loan events, not distinct books.
+	 */
 	@Query(
 			value = """
 					SELECT new com.library.dto.AuthorBorrowAnalyticsDto(a.id, a.name, COUNT(l.id))

@@ -5,6 +5,7 @@ import com.library.dto.RegisterRequest;
 import com.library.dto.UserDto;
 import com.library.entity.Role;
 import com.library.exception.ConflictException;
+import com.library.repository.UserRepository;
 import com.library.security.JwtService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,6 +15,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -31,6 +33,9 @@ class AuthenticationServiceAsyncNotificationTest {
 	private UserService userService;
 
 	@Mock
+	private UserRepository userRepository;
+
+	@Mock
 	private JwtService jwtService;
 
 	@Mock
@@ -41,6 +46,9 @@ class AuthenticationServiceAsyncNotificationTest {
 
 	@Mock
 	private EmailNotificationService emailNotificationService;
+
+	@Mock
+	private PasswordEncoder passwordEncoder;
 
 	@InjectMocks
 	private AuthenticationService authenticationService;

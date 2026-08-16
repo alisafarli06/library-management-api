@@ -69,7 +69,8 @@ class RoleAuthorizationTest {
 		mockMvc.perform(get("/api/user/profile")
 						.header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
 				.andExpect(status().isOk())
-				.andExpect(content().string("User content"));
+				.andExpect(jsonPath("$.email").value("user@library.com"))
+				.andExpect(jsonPath("$.name").value("Test User"));
 	}
 
 	@Test

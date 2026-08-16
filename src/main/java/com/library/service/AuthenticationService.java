@@ -1,11 +1,16 @@
 package com.library.service;
 
 import com.library.dto.AuthenticationResponse;
+import com.library.dto.ChangePasswordRequest;
 import com.library.dto.LoginRequest;
 import com.library.dto.RefreshTokenRequest;
 import com.library.dto.RegisterRequest;
 import com.library.dto.UserDto;
 import com.library.entity.Role;
+import com.library.entity.User;
+import com.library.exception.BadRequestException;
+import com.library.exception.ResourceNotFoundException;
+import com.library.repository.UserRepository;
 import com.library.security.JwtService;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
@@ -17,6 +22,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,22 +31,28 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuthenticationService {
 
 	private final UserService userService;
+	private final UserRepository userRepository;
 	private final JwtService jwtService;
 	private final AuthenticationManager authenticationManager;
 	private final UserDetailsService userDetailsService;
 	private final EmailNotificationService emailNotificationService;
+	private final PasswordEncoder passwordEncoder;
 
 	public AuthenticationService(
 			UserService userService,
+			UserRepository userRepository,
 			JwtService jwtService,
 			AuthenticationManager authenticationManager,
 			UserDetailsService userDetailsService,
-			EmailNotificationService emailNotificationService) {
+			EmailNotificationService emailNotificationService,
+			PasswordEncoder passwordEncoder) {
 		this.userService = userService;
+		this.userRepository = userRepository;
 		this.jwtService = jwtService;
 		this.authenticationManager = authenticationManager;
 		this.userDetailsService = userDetailsService;
 		this.emailNotificationService = emailNotificationService;
+		this.passwordEncoder = passwordEncoder;
 	}
 
 	@Transactional
@@ -79,6 +91,23 @@ public class AuthenticationService {
 		} catch (UsernameNotFoundException | JwtException | IllegalArgumentException ex) {
 			throw new InsufficientAuthenticationException("Invalid refresh token");
 		}
+	}
+
+	@Transactional
+	public void changePassword(String email, ChangePasswordRequest request) {
+		User user = userRepository.findByEmail(email)
+				.orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
+
+		if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+			throw new BadRequestException("Current password is incorrect");
+		}
+
+		if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
+			throw new BadRequestException("New password must be different from the current password");
+		}
+
+		user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+		userRepository.save(user);
 	}
 
 	private AuthenticationResponse issueTokens(String email, Role role) {

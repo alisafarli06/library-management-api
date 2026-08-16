@@ -67,7 +67,7 @@ class LoanFlowIntegrationTest {
 
 	@Test
 	void userSelfBorrowCreatesLoanAndReturnRestoresAvailability() throws Exception {
-		User user = saveUser("Borrower User", Role.USER);
+		User user = saveUser("Casey Rivera", Role.USER);
 		Member member = saveMemberForUser(user);
 		Book book = saveBook(true);
 		String token = jwtService.generateAccessToken(user.getEmail(), Role.USER);
@@ -205,6 +205,58 @@ class LoanFlowIntegrationTest {
 		duplicate.setBorrowedAt(Instant.now());
 
 		assertThrows(DataIntegrityViolationException.class, () -> loanRepository.saveAndFlush(duplicate));
+	}
+
+	@Test
+	void adminSearchFiltersByQueryAndStatus() throws Exception {
+		User admin = userRepository.findByEmail("admin@library.com").orElseGet(() -> saveUser("Library Admin", Role.ADMIN));
+		String token = jwtService.generateAccessToken(admin.getEmail(), Role.ADMIN);
+
+		Member ada = saveMember("Ada Lovelace");
+		Member grace = saveMember("Grace Hopper");
+		Book cleanCode = saveBook(true);
+		cleanCode.setTitle("Clean Code");
+		cleanCode = bookRepository.save(cleanCode);
+		Book effectiveJava = saveBook(true);
+		effectiveJava.setTitle("Effective Java");
+		effectiveJava = bookRepository.save(effectiveJava);
+
+		Loan active = new Loan();
+		active.setMember(ada);
+		active.setBook(cleanCode);
+		active.setBorrowedAt(Instant.now());
+		loanRepository.save(active);
+
+		Loan returned = new Loan();
+		returned.setMember(grace);
+		returned.setBook(effectiveJava);
+		returned.setBorrowedAt(Instant.now().minusSeconds(3600));
+		returned.setReturnedAt(Instant.now());
+		loanRepository.save(returned);
+
+		mockMvc.perform(get("/api/loans/search")
+						.param("q", "Lovelace")
+						.param("status", "borrowed")
+						.param("sort", "borrowedAt,desc")
+						.header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.totalElements").value(1))
+				.andExpect(jsonPath("$.content[0].bookTitle").value("Clean Code"))
+				.andExpect(jsonPath("$.content[0].memberName").value("Ada Lovelace"));
+
+		mockMvc.perform(get("/api/loans/search")
+						.param("q", "Effective")
+						.param("status", "returned")
+						.header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.totalElements").value(1))
+				.andExpect(jsonPath("$.content[0].bookTitle").value("Effective Java"));
+
+		mockMvc.perform(get("/api/loans/search")
+						.param("q", "zzz-not-found")
+						.header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.totalElements").value(0));
 	}
 
 	private User saveUser(String fullName, Role role) {

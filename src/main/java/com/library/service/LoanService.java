@@ -1,15 +1,18 @@
 package com.library.service;
 
 import com.library.dto.LoanDto;
+import com.library.entity.Loan;
 import com.library.entity.Member;
 import com.library.entity.User;
 import com.library.exception.ResourceNotFoundException;
 import com.library.mapper.LoanMapper;
 import com.library.repository.LoanRepository;
+import com.library.repository.LoanSpecifications;
 import com.library.repository.MemberRepository;
 import com.library.repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,6 +38,15 @@ public class LoanService {
 
 	public Page<LoanDto> findAll(Pageable pageable) {
 		return loanRepository.findAll(pageable).map(loanMapper::toDto);
+	}
+
+	public Page<LoanDto> search(String q, String status, Pageable pageable) {
+		Specification<Loan> specification = Specification
+				.allOf(
+						LoanSpecifications.matchesQuery(q),
+						LoanSpecifications.status(status)
+				);
+		return loanRepository.findAll(specification, pageable).map(loanMapper::toDto);
 	}
 
 	public Page<LoanDto> findForAuthenticatedUser(String email, Pageable pageable) {

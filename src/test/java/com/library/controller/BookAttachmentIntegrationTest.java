@@ -102,7 +102,7 @@ class BookAttachmentIntegrationTest {
 		author.setName("Attach Author " + UUID.randomUUID());
 		author = authorRepository.save(author);
 		book = new Book();
-		book.setTitle("Attach Book");
+		book.setTitle("Head First Design Patterns");
 		book.setIsbn(UUID.randomUUID().toString().replace("-", "").substring(0, 13));
 		book.setPublishedYear(2020);
 		book.setAuthor(author);

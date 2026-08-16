@@ -6,13 +6,15 @@ import com.library.dto.MemberBorrowAnalyticsDto;
 import com.library.entity.Loan;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.Optional;
 
-public interface LoanRepository extends JpaRepository<Loan, Long> {
+public interface LoanRepository extends JpaRepository<Loan, Long>, JpaSpecificationExecutor<Loan> {
 
 	boolean existsByMember_IdAndBook_IdAndReturnedAtIsNull(Long memberId, Long bookId);
 
@@ -27,6 +29,10 @@ public interface LoanRepository extends JpaRepository<Loan, Long> {
 	@Override
 	@EntityGraph(attributePaths = { "member", "book" })
 	Page<Loan> findAll(Pageable pageable);
+
+	@Override
+	@EntityGraph(attributePaths = { "member", "book" })
+	Page<Loan> findAll(Specification<Loan> spec, Pageable pageable);
 
 	@EntityGraph(attributePaths = { "member", "book" })
 	Page<Loan> findByMember_Id(Long memberId, Pageable pageable);

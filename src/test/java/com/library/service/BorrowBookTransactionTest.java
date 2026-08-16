@@ -57,14 +57,14 @@ class BorrowBookTransactionTest {
 		author = authorRepository.save(author);
 
 		book = new Book();
-		book.setTitle("Borrowable Book");
+		book.setTitle("The Pragmatic Programmer");
 		book.setIsbn(UUID.randomUUID().toString().replace("-", "").substring(0, 13));
 		book.setPublishedYear(2024);
 		book.setAuthor(author);
 		book = bookRepository.save(book);
 
 		member = new Member();
-		member.setName("Borrower");
+		member.setName("Casey Rivera");
 		member.setEmail("borrower-" + UUID.randomUUID() + "@library.com");
 		member = memberRepository.save(member);
 	}

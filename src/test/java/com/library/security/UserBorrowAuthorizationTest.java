@@ -66,7 +66,7 @@ class UserBorrowAuthorizationTest {
 	@BeforeEach
 	void setUp() {
 		borrower = new User();
-		borrower.setFullName("Borrower User");
+		borrower.setFullName("Casey Rivera");
 		borrower.setEmail("borrower-" + UUID.randomUUID() + "@library.com");
 		borrower.setPassword(passwordEncoder.encode("User12345"));
 		borrower.setRole(Role.USER);

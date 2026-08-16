@@ -16,6 +16,9 @@ public class LoanDto {
 	@Schema(description = "Borrowing member name", example = "Ada Lovelace")
 	private String memberName;
 
+	@Schema(description = "Borrowing member email", example = "ada@library.com")
+	private String memberEmail;
+
 	@Schema(description = "Borrowed book identifier", example = "9")
 	private Long bookId;
 
@@ -53,6 +56,14 @@ public class LoanDto {
 
 	public void setMemberName(String memberName) {
 		this.memberName = memberName;
+	}
+
+	public String getMemberEmail() {
+		return memberEmail;
+	}
+
+	public void setMemberEmail(String memberEmail) {
+		this.memberEmail = memberEmail;
 	}
 
 	public Long getBookId() {

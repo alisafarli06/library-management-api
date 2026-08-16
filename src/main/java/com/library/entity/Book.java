@@ -46,6 +46,14 @@ public class Book {
 	@JoinColumn(name = "author_id", nullable = false)
 	private Author author;
 
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "cover_file_id")
+	private FileMetadata coverFile;
+
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "preface_file_id")
+	private FileMetadata prefaceFile;
+
 	@ManyToMany(mappedBy = "books", fetch = FetchType.LAZY)
 	private Set<Member> members = new HashSet<>();
 
@@ -98,6 +106,22 @@ public class Book {
 
 	public void setAuthor(Author author) {
 		this.author = author;
+	}
+
+	public FileMetadata getCoverFile() {
+		return coverFile;
+	}
+
+	public void setCoverFile(FileMetadata coverFile) {
+		this.coverFile = coverFile;
+	}
+
+	public FileMetadata getPrefaceFile() {
+		return prefaceFile;
+	}
+
+	public void setPrefaceFile(FileMetadata prefaceFile) {
+		this.prefaceFile = prefaceFile;
 	}
 
 	public Set<Member> getMembers() {

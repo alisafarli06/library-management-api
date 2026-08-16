@@ -27,8 +27,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/books")
@@ -135,6 +137,44 @@ public class BookController {
 					schema = @Schema(implementation = ErrorResponse.class)))
 	public BookDto create(@Valid @RequestBody BookDto bookDto) {
 		return bookService.create(bookDto);
+	}
+
+	@PostMapping(value = "/{id}/cover", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	@Operation(summary = "Attach or replace book cover", description = "ADMIN only. JPEG or PNG cover image.")
+	@ApiResponse(responseCode = "200", description = "Cover attached")
+	@ApiResponse(responseCode = "400", description = "Invalid cover file")
+	@ApiResponse(responseCode = "404", description = "Book not found")
+	public BookDto attachCover(
+			@PathVariable Long id,
+			@RequestPart("file") MultipartFile file) {
+		return bookService.attachCover(id, file);
+	}
+
+	@DeleteMapping("/{id}/cover")
+	@Operation(summary = "Remove book cover", description = "ADMIN only.")
+	@ApiResponse(responseCode = "200", description = "Cover removed")
+	@ApiResponse(responseCode = "404", description = "Book not found")
+	public BookDto removeCover(@PathVariable Long id) {
+		return bookService.removeCover(id);
+	}
+
+	@PostMapping(value = "/{id}/preface", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	@Operation(summary = "Attach or replace book preface", description = "ADMIN only. PDF preface document.")
+	@ApiResponse(responseCode = "200", description = "Preface attached")
+	@ApiResponse(responseCode = "400", description = "Invalid preface file")
+	@ApiResponse(responseCode = "404", description = "Book not found")
+	public BookDto attachPreface(
+			@PathVariable Long id,
+			@RequestPart("file") MultipartFile file) {
+		return bookService.attachPreface(id, file);
+	}
+
+	@DeleteMapping("/{id}/preface")
+	@Operation(summary = "Remove book preface", description = "ADMIN only.")
+	@ApiResponse(responseCode = "200", description = "Preface removed")
+	@ApiResponse(responseCode = "404", description = "Book not found")
+	public BookDto removePreface(@PathVariable Long id) {
+		return bookService.removePreface(id);
 	}
 
 	@PutMapping("/{id}")

@@ -59,6 +59,8 @@ public class SecurityConfig {
 								"/api/members/{memberId}/books/{bookId}/return"
 						).hasRole("ADMIN")
 						.requestMatchers(HttpMethod.GET, "/api/books/**", "/api/authors/**").authenticated()
+						.requestMatchers(HttpMethod.POST, "/api/files", "/api/files/**").hasRole("ADMIN")
+						.requestMatchers(HttpMethod.GET, "/api/files/**").authenticated()
 						.requestMatchers("/api/books/**", "/api/authors/**", "/api/members/**").hasRole("ADMIN")
 						.anyRequest().authenticated()
 				)

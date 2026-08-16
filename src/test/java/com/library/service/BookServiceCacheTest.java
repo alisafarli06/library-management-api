@@ -164,7 +164,7 @@ class BookServiceCacheTest {
 		assertNotNull(booksCache().get(book.getId()));
 
 		doThrow(new RuntimeException("Forced delete failure"))
-				.when(bookRepository).deleteById(book.getId());
+				.when(bookRepository).delete(org.mockito.ArgumentMatchers.any(Book.class));
 
 		assertThrows(RuntimeException.class, () -> bookService.delete(book.getId()));
 		assertNotNull(booksCache().get(book.getId()), "Failed delete must not evict the cache entry");

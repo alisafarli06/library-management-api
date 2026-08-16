@@ -65,6 +65,7 @@ class FileControllerTest {
 	private final ObjectMapper objectMapper = new ObjectMapper();
 
 	private String token;
+	private String adminToken;
 
 	@BeforeEach
 	void setUp() {
@@ -76,6 +77,14 @@ class FileControllerTest {
 		user.setPassword(passwordEncoder.encode("User12345"));
 		userRepository.save(user);
 		token = jwtService.generateToken("file-user@library.com", Role.USER);
+
+		User admin = userRepository.findByEmail("file-admin@library.com").orElseGet(User::new);
+		admin.setEmail("file-admin@library.com");
+		admin.setFullName("File Admin");
+		admin.setRole(Role.ADMIN);
+		admin.setPassword(passwordEncoder.encode("Admin12345"));
+		userRepository.save(admin);
+		adminToken = jwtService.generateToken("file-admin@library.com", Role.ADMIN);
 	}
 
 	@Test
@@ -85,7 +94,7 @@ class FileControllerTest {
 
 		MvcResult result = mockMvc.perform(multipart("/api/files")
 						.file(file)
-						.header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+						.header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
 				.andExpect(status().isCreated())
 				.andExpect(jsonPath("$.id").isNumber())
 				.andExpect(jsonPath("$.originalFilename").value("notes.pdf"))
@@ -105,7 +114,7 @@ class FileControllerTest {
 
 		mockMvc.perform(multipart("/api/files")
 						.file(file)
-						.header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+						.header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.status").value(400))
 				.andExpect(jsonPath("$.message").value("File must not be empty"));
@@ -122,7 +131,7 @@ class FileControllerTest {
 
 		mockMvc.perform(multipart("/api/files")
 						.file(file)
-						.header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+						.header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.status").value(400));
 	}
@@ -136,7 +145,7 @@ class FileControllerTest {
 
 		MvcResult uploadResult = mockMvc.perform(multipart("/api/files")
 						.file(file)
-						.header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+						.header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
 				.andExpect(status().isCreated())
 				.andReturn();
 

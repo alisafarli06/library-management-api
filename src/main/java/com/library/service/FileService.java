@@ -92,12 +92,26 @@ public class FileService {
 		}
 	}
 
-	@Transactional(readOnly = true)
+	@Transactional
 	public FileDownload loadForDownload(Long id) {
-		FileMetadata metadata = fileMetadataRepository.findById(id)
-				.orElseThrow(() -> new ResourceNotFoundException("File not found with id: " + id));
+		FileMetadata metadata = require(id);
 		Resource resource = fileStorageService.loadAsResource(metadata.getStoredFilename());
 		return new FileDownload(resource, metadata.getOriginalFilename(), metadata.getContentType(), metadata.getSize());
+	}
+
+	@Transactional
+	public void delete(Long id) {
+		FileMetadata metadata = require(id);
+		String storedFilename = metadata.getStoredFilename();
+		fileMetadataRepository.delete(metadata);
+		fileMetadataRepository.flush();
+		fileStorageService.delete(storedFilename);
+	}
+
+	@Transactional(readOnly = true)
+	public FileMetadata require(Long id) {
+		return fileMetadataRepository.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("File not found with id: " + id));
 	}
 
 	private void validateFile(MultipartFile file) {

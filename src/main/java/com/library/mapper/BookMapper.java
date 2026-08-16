@@ -16,6 +16,14 @@ public class BookMapper {
 		dto.setPublishedYear(book.getPublishedYear());
 		dto.setAuthorId(book.getAuthor().getId());
 		dto.setAvailable(book.isAvailable());
+		if (book.getCoverFile() != null) {
+			dto.setCoverFileId(book.getCoverFile().getId());
+			dto.setCoverFileName(book.getCoverFile().getOriginalFilename());
+		}
+		if (book.getPrefaceFile() != null) {
+			dto.setPrefaceFileId(book.getPrefaceFile().getId());
+			dto.setPrefaceFileName(book.getPrefaceFile().getOriginalFilename());
+		}
 		return dto;
 	}
 

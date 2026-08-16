@@ -33,6 +33,10 @@ public interface BookRepository extends JpaRepository<Book, Long>, JpaSpecificat
 	@EntityGraph(attributePaths = "author")
 	Page<Book> findAll(Specification<Book> spec, Pageable pageable);
 
+	@Override
+	@EntityGraph(attributePaths = {"author", "coverFile", "prefaceFile"})
+	Optional<Book> findById(Long id);
+
 	List<Book> findByTitleContainingIgnoreCase(String title);
 
 	List<Book> findByAuthor_NameContainingIgnoreCase(String authorName);

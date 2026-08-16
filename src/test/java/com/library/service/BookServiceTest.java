@@ -2,12 +2,17 @@ package com.library.service;
 
 import com.library.dto.BookDto;
 import com.library.dto.BookSearchRequest;
+import com.library.dto.FileMetadataDto;
 import com.library.entity.Author;
 import com.library.entity.Book;
+import com.library.entity.FileMetadata;
+import com.library.exception.BadRequestException;
 import com.library.exception.ResourceNotFoundException;
 import com.library.mapper.BookMapper;
 import com.library.repository.AuthorRepository;
 import com.library.repository.BookRepository;
+import com.library.repository.FileMetadataRepository;
+import com.library.service.FileService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -20,6 +25,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.mock.web.MockMultipartFile;
 
 import java.util.List;
 import java.util.Optional;
@@ -43,6 +49,12 @@ class BookServiceTest {
 
 	@Mock
 	private AuthorRepository authorRepository;
+
+	@Mock
+	private FileMetadataRepository fileMetadataRepository;
+
+	@Mock
+	private FileService fileService;
 
 	@Spy
 	private BookMapper bookMapper = new BookMapper();
@@ -233,28 +245,113 @@ class BookServiceTest {
 
 	@Test
 	void delete_whenBookExists_deletesBook() {
-		// Arrange
-		when(bookRepository.existsById(1L)).thenReturn(true);
+		Author author = createAuthor(1L, "Ali Safarli");
+		Book existing = createBook(1L, "Harry Potter and the Philosopher's Stone", "9780747532699", 1997, author);
+		when(bookRepository.findById(1L)).thenReturn(Optional.of(existing));
+		when(bookRepository.save(any(Book.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-		// Act
 		bookService.delete(1L);
 
-		// Assert
-		verify(bookRepository).deleteById(1L);
+		verify(bookRepository).delete(existing);
 	}
 
 	@Test
 	void delete_whenBookDoesNotExist_throwsResourceNotFoundException() {
-		// Arrange
-		when(bookRepository.existsById(99L)).thenReturn(false);
+		when(bookRepository.findById(99L)).thenReturn(Optional.empty());
 
-		// Act & Assert
 		ResourceNotFoundException exception = assertThrows(
 				ResourceNotFoundException.class,
 				() -> bookService.delete(99L)
 		);
 		assertEquals("Book not found with id: 99", exception.getMessage());
-		verify(bookRepository, never()).deleteById(any());
+		verify(bookRepository, never()).delete(any(Book.class));
+	}
+
+	@Test
+	void create_withoutFiles_leavesAttachmentIdsNull() {
+		Author author = createAuthor(1L, "Ali Safarli");
+		BookDto request = createBookDto(null, "Harry Potter and the Chamber of Secrets", "9780747538493", 1998, 1L);
+		when(authorRepository.findById(1L)).thenReturn(Optional.of(author));
+		when(bookRepository.save(any(Book.class))).thenAnswer(invocation -> {
+			Book input = invocation.getArgument(0);
+			input.setId(5L);
+			return input;
+		});
+
+		BookDto result = bookService.create(request);
+
+		assertNull(result.getCoverFileId());
+		assertNull(result.getPrefaceFileId());
+	}
+
+	@Test
+	void attachCover_whenJpeg_setsCoverMetadata() {
+		Author author = createAuthor(1L, "Ali Safarli");
+		Book existing = createBook(1L, "Harry Potter and the Philosopher's Stone", "9780747532699", 1997, author);
+		when(bookRepository.findById(1L)).thenReturn(Optional.of(existing));
+		when(bookRepository.save(any(Book.class))).thenAnswer(invocation -> invocation.getArgument(0));
+		FileMetadataDto uploaded = new FileMetadataDto();
+		uploaded.setId(40L);
+		when(fileService.upload(any())).thenReturn(uploaded);
+		FileMetadata jpeg = new FileMetadata();
+		jpeg.setId(40L);
+		jpeg.setContentType("image/jpeg");
+		jpeg.setOriginalFilename("cover.jpg");
+		when(fileMetadataRepository.findById(40L)).thenReturn(Optional.of(jpeg));
+
+		BookDto result = bookService.attachCover(1L, new MockMultipartFile("file", "cover.jpg", "image/jpeg", new byte[] {
+				(byte) 0xFF, (byte) 0xD8, (byte) 0xFF
+		}));
+
+		assertEquals(40L, result.getCoverFileId());
+		assertEquals("cover.jpg", result.getCoverFileName());
+		assertNull(result.getPrefaceFileId());
+	}
+
+	@Test
+	void attachCover_rejectsPdf() {
+		Author author = createAuthor(1L, "Ali Safarli");
+		Book existing = createBook(1L, "Harry Potter and the Philosopher's Stone", "9780747532699", 1997, author);
+		when(bookRepository.findById(1L)).thenReturn(Optional.of(existing));
+		FileMetadataDto uploaded = new FileMetadataDto();
+		uploaded.setId(40L);
+		when(fileService.upload(any())).thenReturn(uploaded);
+		FileMetadata pdf = new FileMetadata();
+		pdf.setId(40L);
+		pdf.setContentType("application/pdf");
+		pdf.setOriginalFilename("intro.pdf");
+		when(fileMetadataRepository.findById(40L)).thenReturn(Optional.of(pdf));
+
+		BadRequestException exception = assertThrows(
+				BadRequestException.class,
+				() -> bookService.attachCover(1L, new MockMultipartFile("file", "intro.pdf", "application/pdf", "%PDF-1".getBytes()))
+		);
+		assertEquals("Cover must be a JPEG or PNG image", exception.getMessage());
+		verify(fileService).delete(40L);
+	}
+
+	@Test
+	void attachPreface_rejectsJpeg() {
+		Author author = createAuthor(1L, "Ali Safarli");
+		Book existing = createBook(1L, "Harry Potter and the Philosopher's Stone", "9780747532699", 1997, author);
+		when(bookRepository.findById(1L)).thenReturn(Optional.of(existing));
+		FileMetadataDto uploaded = new FileMetadataDto();
+		uploaded.setId(41L);
+		when(fileService.upload(any())).thenReturn(uploaded);
+		FileMetadata jpeg = new FileMetadata();
+		jpeg.setId(41L);
+		jpeg.setContentType("image/jpeg");
+		jpeg.setOriginalFilename("cover.jpg");
+		when(fileMetadataRepository.findById(41L)).thenReturn(Optional.of(jpeg));
+
+		BadRequestException exception = assertThrows(
+				BadRequestException.class,
+				() -> bookService.attachPreface(1L, new MockMultipartFile("file", "cover.jpg", "image/jpeg", new byte[] {
+						(byte) 0xFF, (byte) 0xD8, (byte) 0xFF
+				}))
+		);
+		assertEquals("Preface must be a PDF document", exception.getMessage());
+		verify(fileService).delete(41L);
 	}
 
 	@Test

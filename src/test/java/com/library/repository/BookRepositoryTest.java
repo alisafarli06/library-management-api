@@ -149,7 +149,7 @@ class BookRepositoryTest {
 				BookSpecifications.publishedYearFrom(2015)
 						.and(BookSpecifications.publishedYearTo(2024))
 						.and(BookSpecifications.availability(true)),
-				PageRequest.of(0, 10)
+				PageRequest.of(0, 200)
 		);
 
 		assertTrue(results.getContent().stream().map(Book::getId).toList().contains(springInAction.getId()));

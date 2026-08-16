@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -45,7 +46,8 @@ public class AuthorController {
 	@Operation(
 			summary = "List authors",
 			description = "Returns a paginated, sortable list of authors. "
-					+ "Supports `page`, `size`, and `sort` query parameters (e.g. `sort=name,asc`)."
+					+ "Supports `page`, `size`, and `sort` query parameters (e.g. `sort=name,asc`). "
+					+ "Each result includes `bookCount` for linked books."
 	)
 	@ApiResponse(
 			responseCode = "200",
@@ -55,6 +57,24 @@ public class AuthorController {
 					schema = @Schema(implementation = AuthorDto.class)))
 	public Page<AuthorDto> getAll(@ParameterObject Pageable pageable) {
 		return authorService.findAll(pageable);
+	}
+
+	@GetMapping("/search")
+	@Operation(
+			summary = "Search authors",
+			description = "Returns a paginated list of authors filtered by optional `q` (case-insensitive name contains). "
+					+ "Supports `page`, `size`, and `sort` query parameters (e.g. `sort=name,asc`). "
+					+ "Each result includes `bookCount` for linked books.")
+	@ApiResponse(
+			responseCode = "200",
+			description = "Paginated search results",
+			content = @Content(
+					mediaType = MediaType.APPLICATION_JSON_VALUE,
+					schema = @Schema(implementation = AuthorDto.class)))
+	public Page<AuthorDto> search(
+			@RequestParam(required = false) String q,
+			@ParameterObject Pageable pageable) {
+		return authorService.search(q, pageable);
 	}
 
 	@GetMapping("/{id}")

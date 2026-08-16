@@ -84,7 +84,7 @@ class UserBorrowAuthorizationTest {
 		otherMember = memberRepository.save(otherMember);
 
 		author = new Author();
-		author.setName("Borrow Author " + UUID.randomUUID());
+		author.setName("Demo Borrow Author");
 		author = authorRepository.save(author);
 
 		availableBook = saveBook("Available Borrow Book", true);

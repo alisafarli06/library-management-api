@@ -46,7 +46,7 @@ class EntityRelationshipTest {
 
 	@Test
 	void memberCanBorrowMultipleBooks() {
-		Author author = authorRepository.save(newAuthor("Borrow Author"));
+		Author author = authorRepository.save(newAuthor("Demo Borrow Author"));
 		Book firstBook = bookRepository.save(newBook("Borrowed One", uniqueIsbn(), author));
 		Book secondBook = bookRepository.save(newBook("Borrowed Two", uniqueIsbn(), author));
 

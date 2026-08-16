@@ -15,7 +15,19 @@ public class AuthorDto {
 	@Schema(description = "Author full name", example = "Jane Austen")
 	private String name;
 
+	@Schema(
+			description = "Number of books linked to this author",
+			example = "3",
+			accessMode = Schema.AccessMode.READ_ONLY)
+	private Long bookCount;
+
 	public AuthorDto() {
+	}
+
+	public AuthorDto(Long id, String name, Long bookCount) {
+		this.id = id;
+		this.name = name;
+		this.bookCount = bookCount != null ? bookCount : 0L;
 	}
 
 	public Long getId() {
@@ -32,5 +44,13 @@ public class AuthorDto {
 
 	public void setName(String name) {
 		this.name = name;
+	}
+
+	public Long getBookCount() {
+		return bookCount;
+	}
+
+	public void setBookCount(Long bookCount) {
+		this.bookCount = bookCount;
 	}
 }

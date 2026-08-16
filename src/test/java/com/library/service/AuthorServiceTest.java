@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -43,9 +44,10 @@ class AuthorServiceTest {
 	@Test
 	void findAll_returnsMappedAuthorDtos() {
 		// Arrange
-		Author author = createAuthor(1L, "Ali Safarli");
+		Author author = createAuthor(1L, "Ali Safarli", 2L);
 		Pageable pageable = PageRequest.of(0, 10);
-		when(authorRepository.findAll(pageable)).thenReturn(new PageImpl<>(List.of(author)));
+		when(authorRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), eq(pageable)))
+				.thenReturn(new PageImpl<>(List.of(author)));
 
 		// Act
 		Page<AuthorDto> result = authorService.findAll(pageable);
@@ -54,13 +56,30 @@ class AuthorServiceTest {
 		assertEquals(1, result.getTotalElements());
 		assertEquals(1L, result.getContent().getFirst().getId());
 		assertEquals("Ali Safarli", result.getContent().getFirst().getName());
-		verify(authorRepository).findAll(pageable);
+		assertEquals(2L, result.getContent().getFirst().getBookCount());
+	}
+
+	@Test
+	void search_trimsQueryAndDelegatesToRepository() {
+		// Arrange
+		Author author = createAuthor(1L, "Ali Safarli", 0L);
+		Pageable pageable = PageRequest.of(0, 10);
+		when(authorRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), eq(pageable)))
+				.thenReturn(new PageImpl<>(List.of(author)));
+
+		// Act
+		Page<AuthorDto> result = authorService.search("  ali  ", pageable);
+
+		// Assert
+		assertEquals(1, result.getTotalElements());
+		assertEquals(0L, result.getContent().getFirst().getBookCount());
+		verify(authorRepository).findAll(any(org.springframework.data.jpa.domain.Specification.class), eq(pageable));
 	}
 
 	@Test
 	void findById_whenAuthorExists_returnsAuthorDto() {
 		// Arrange
-		when(authorRepository.findById(1L)).thenReturn(Optional.of(createAuthor(1L, "Ali Safarli")));
+		when(authorRepository.findById(1L)).thenReturn(Optional.of(createAuthor(1L, "Ali Safarli", 3L)));
 
 		// Act
 		AuthorDto result = authorService.findById(1L);
@@ -68,6 +87,7 @@ class AuthorServiceTest {
 		// Assert
 		assertEquals(1L, result.getId());
 		assertEquals("Ali Safarli", result.getName());
+		assertEquals(3L, result.getBookCount());
 	}
 
 	@Test
@@ -103,6 +123,7 @@ class AuthorServiceTest {
 		// Assert
 		assertEquals(2L, result.getId());
 		assertEquals("Omar Ismayilov", result.getName());
+		assertEquals(0L, result.getBookCount());
 
 		ArgumentCaptor<Author> captor = ArgumentCaptor.forClass(Author.class);
 		verify(authorRepository).save(captor.capture());
@@ -113,7 +134,7 @@ class AuthorServiceTest {
 	@Test
 	void update_whenAuthorExists_updatesAndReturnsDto() {
 		// Arrange
-		Author existing = createAuthor(1L, "Ali Safarli");
+		Author existing = createAuthor(1L, "Ali Safarli", 1L);
 		AuthorDto request = new AuthorDto();
 		request.setName("Omar Ismayilov");
 
@@ -126,6 +147,7 @@ class AuthorServiceTest {
 		// Assert
 		assertEquals(1L, result.getId());
 		assertEquals("Omar Ismayilov", result.getName());
+		assertEquals(1L, result.getBookCount());
 		verify(authorRepository).save(existing);
 	}
 
@@ -167,10 +189,11 @@ class AuthorServiceTest {
 		verify(authorRepository, never()).deleteById(any());
 	}
 
-	private Author createAuthor(Long id, String name) {
+	private Author createAuthor(Long id, String name, Long bookCount) {
 		Author author = new Author();
 		author.setId(id);
 		author.setName(name);
+		author.setBookCount(bookCount);
 		return author;
 	}
 }

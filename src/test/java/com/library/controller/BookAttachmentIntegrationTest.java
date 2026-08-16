@@ -99,7 +99,7 @@ class BookAttachmentIntegrationTest {
 		adminToken = jwtService.generateToken("attach-admin@library.com", Role.ADMIN);
 
 		Author author = new Author();
-		author.setName("Attach Author " + UUID.randomUUID());
+		author.setName("Demo Attach Author");
 		author = authorRepository.save(author);
 		book = new Book();
 		book.setTitle("Head First Design Patterns");

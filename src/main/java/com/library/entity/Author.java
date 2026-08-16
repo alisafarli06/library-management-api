@@ -9,6 +9,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.Formula;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,6 +24,9 @@ public class Author {
 
 	@Column(nullable = false)
 	private String name;
+
+	@Formula("(SELECT COUNT(*) FROM books b WHERE b.author_id = id)")
+	private Long bookCount;
 
 	@OneToMany(
 			mappedBy = "author",
@@ -48,6 +52,14 @@ public class Author {
 
 	public void setName(String name) {
 		this.name = name;
+	}
+
+	public Long getBookCount() {
+		return bookCount;
+	}
+
+	public void setBookCount(Long bookCount) {
+		this.bookCount = bookCount;
 	}
 
 	public List<Book> getBooks() {

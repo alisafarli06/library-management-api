@@ -12,6 +12,7 @@ public class MemberMapper {
 		dto.setId(member.getId());
 		dto.setName(member.getName());
 		dto.setEmail(member.getEmail());
+		dto.setActiveLoanCount(member.getActiveLoanCount() != null ? member.getActiveLoanCount() : 0L);
 		return dto;
 	}
 

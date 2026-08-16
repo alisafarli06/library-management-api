@@ -22,6 +22,12 @@ public class MemberDto {
 	@Schema(description = "Member email address", example = "john.smith@example.com")
 	private String email;
 
+	@Schema(
+			description = "Number of active (not yet returned) loans for this member",
+			example = "1",
+			accessMode = Schema.AccessMode.READ_ONLY)
+	private Long activeLoanCount;
+
 	public MemberDto() {
 	}
 
@@ -47,5 +53,13 @@ public class MemberDto {
 
 	public void setEmail(String email) {
 		this.email = email;
+	}
+
+	public Long getActiveLoanCount() {
+		return activeLoanCount;
+	}
+
+	public void setActiveLoanCount(Long activeLoanCount) {
+		this.activeLoanCount = activeLoanCount;
 	}
 }

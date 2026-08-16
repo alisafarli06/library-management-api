@@ -11,6 +11,7 @@ import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.Formula;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -28,6 +29,9 @@ public class Member {
 
 	@Column(nullable = false, unique = true)
 	private String email;
+
+	@Formula("(SELECT COUNT(*) FROM loans l WHERE l.member_id = id AND l.returned_at IS NULL)")
+	private Long activeLoanCount;
 
 	@OneToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "user_id", unique = true)
@@ -66,6 +70,14 @@ public class Member {
 
 	public void setEmail(String email) {
 		this.email = email;
+	}
+
+	public Long getActiveLoanCount() {
+		return activeLoanCount;
+	}
+
+	public void setActiveLoanCount(Long activeLoanCount) {
+		this.activeLoanCount = activeLoanCount;
 	}
 
 	public User getUser() {

@@ -12,6 +12,7 @@ import com.library.mapper.MemberMapper;
 import com.library.repository.BookRepository;
 import com.library.repository.LoanRepository;
 import com.library.repository.MemberRepository;
+import com.library.repository.MemberSpecifications;
 import com.library.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,7 +55,12 @@ public class MemberService {
 	}
 
 	public Page<MemberDto> findAll(Pageable pageable) {
-		return memberRepository.findAll(pageable).map(memberMapper::toDto);
+		return search(null, pageable);
+	}
+
+	public Page<MemberDto> search(String q, Pageable pageable) {
+		String term = org.springframework.util.StringUtils.hasText(q) ? q.trim() : null;
+		return memberRepository.findAll(MemberSpecifications.matchesQuery(term), pageable).map(memberMapper::toDto);
 	}
 
 	public MemberDto findById(Long id) {

@@ -34,6 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -67,7 +68,8 @@ class MemberServiceTest {
 		// Arrange
 		Member member = createMember(1L, "Ali Safarli", "ali.safarli@gmail.com");
 		Pageable pageable = PageRequest.of(0, 10);
-		when(memberRepository.findAll(pageable)).thenReturn(new PageImpl<>(List.of(member)));
+		when(memberRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), eq(pageable)))
+				.thenReturn(new PageImpl<>(List.of(member)));
 
 		// Act
 		Page<MemberDto> result = memberService.findAll(pageable);
@@ -77,7 +79,23 @@ class MemberServiceTest {
 		assertEquals(1L, result.getContent().getFirst().getId());
 		assertEquals("Ali Safarli", result.getContent().getFirst().getName());
 		assertEquals("ali.safarli@gmail.com", result.getContent().getFirst().getEmail());
-		verify(memberRepository).findAll(pageable);
+		verify(memberRepository).findAll(any(org.springframework.data.jpa.domain.Specification.class), eq(pageable));
+	}
+
+	@Test
+	void search_trimsQueryAndDelegatesToRepository() {
+		// Arrange
+		Member member = createMember(1L, "Ali Safarli", "ali.safarli@gmail.com");
+		Pageable pageable = PageRequest.of(0, 10);
+		when(memberRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), eq(pageable)))
+				.thenReturn(new PageImpl<>(List.of(member)));
+
+		// Act
+		Page<MemberDto> result = memberService.search("  ali  ", pageable);
+
+		// Assert
+		assertEquals(1, result.getTotalElements());
+		verify(memberRepository).findAll(any(org.springframework.data.jpa.domain.Specification.class), eq(pageable));
 	}
 
 	@Test

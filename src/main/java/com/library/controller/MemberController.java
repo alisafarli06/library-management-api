@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -45,7 +46,8 @@ public class MemberController {
 	@Operation(
 			summary = "List members",
 			description = "Returns a paginated, sortable list of members. "
-					+ "Supports `page`, `size`, and `sort` query parameters (e.g. `sort=name,asc`)."
+					+ "Supports `page`, `size`, and `sort` query parameters (e.g. `sort=name,asc`). "
+					+ "Each result includes `activeLoanCount`."
 	)
 	@ApiResponse(
 			responseCode = "200",
@@ -55,6 +57,26 @@ public class MemberController {
 					schema = @Schema(implementation = MemberDto.class)))
 	public Page<MemberDto> getAll(@ParameterObject Pageable pageable) {
 		return memberService.findAll(pageable);
+	}
+
+	@GetMapping("/search")
+	@Operation(
+			summary = "Search members",
+			description = "Returns a paginated list of members filtered by optional `q` "
+					+ "(case-insensitive contains on name or email). "
+					+ "Supports `page`, `size`, and `sort` (e.g. `sort=email,asc`). "
+					+ "Each result includes `activeLoanCount`."
+	)
+	@ApiResponse(
+			responseCode = "200",
+			description = "Paginated search results",
+			content = @Content(
+					mediaType = MediaType.APPLICATION_JSON_VALUE,
+					schema = @Schema(implementation = MemberDto.class)))
+	public Page<MemberDto> search(
+			@RequestParam(required = false) String q,
+			@ParameterObject Pageable pageable) {
+		return memberService.search(q, pageable);
 	}
 
 	@GetMapping("/{id}")

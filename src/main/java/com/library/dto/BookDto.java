@@ -31,6 +31,9 @@ public class BookDto {
 	@Schema(description = "Identifier of the book's author", example = "1")
 	private Long authorId;
 
+	@Schema(description = "Author display name", example = "Andrew Hunt", accessMode = Schema.AccessMode.READ_ONLY)
+	private String authorName;
+
 	@Schema(
 			description = "Whether the book can currently be borrowed. Controlled by borrow/return, not by create/update.",
 			example = "true",
@@ -90,6 +93,14 @@ public class BookDto {
 
 	public void setAuthorId(Long authorId) {
 		this.authorId = authorId;
+	}
+
+	public String getAuthorName() {
+		return authorName;
+	}
+
+	public void setAuthorName(String authorName) {
+		this.authorName = authorName;
 	}
 
 	public boolean isAvailable() {

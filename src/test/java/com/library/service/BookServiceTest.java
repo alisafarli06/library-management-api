@@ -81,6 +81,7 @@ class BookServiceTest {
 		assertEquals("9780747532699", dto.getIsbn());
 		assertEquals(1997, dto.getPublishedYear());
 		assertEquals(1L, dto.getAuthorId());
+		assertEquals("Ali Safarli", dto.getAuthorName());
 		assertTrue(dto.isAvailable());
 	}
 
@@ -98,6 +99,7 @@ class BookServiceTest {
 		assertEquals(1L, result.getId());
 		assertEquals("Harry Potter and the Philosopher's Stone", result.getTitle());
 		assertEquals(1L, result.getAuthorId());
+		assertEquals("Ali Safarli", result.getAuthorName());
 		assertTrue(result.isAvailable());
 	}
 

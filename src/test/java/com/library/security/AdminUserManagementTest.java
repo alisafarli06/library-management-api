@@ -193,6 +193,59 @@ class AdminUserManagementTest {
 	}
 
 	@Test
+	void demotedAdminExistingAccessTokenCannotCallAdminEndpoints() throws Exception {
+		String actorToken = jwtService.generateToken(adminUserProperties.getEmail(), Role.ADMIN);
+		User target = userRepository.findByEmail("second-admin@library.com").orElseThrow();
+		String targetAccessToken = jwtService.generateToken(target.getEmail(), Role.ADMIN);
+
+		mockMvc.perform(patch("/api/admin/users/" + target.getId() + "/role")
+						.header(HttpHeaders.AUTHORIZATION, "Bearer " + actorToken)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{ "role": "USER" }
+								"""))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.role").value("USER"));
+
+		mockMvc.perform(get("/api/admin/users")
+						.header(HttpHeaders.AUTHORIZATION, "Bearer " + targetAccessToken))
+				.andExpect(status().isForbidden())
+				.andExpect(jsonPath("$.message").value("Access denied"));
+	}
+
+	@Test
+	void demotedAdminRefreshIssuesUserTokens() throws Exception {
+		String actorToken = jwtService.generateToken(adminUserProperties.getEmail(), Role.ADMIN);
+		User target = userRepository.findByEmail("second-admin@library.com").orElseThrow();
+		String staleRefreshToken = jwtService.generateRefreshToken(target.getEmail(), Role.ADMIN);
+
+		mockMvc.perform(patch("/api/admin/users/" + target.getId() + "/role")
+						.header(HttpHeaders.AUTHORIZATION, "Bearer " + actorToken)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{ "role": "USER" }
+								"""))
+				.andExpect(status().isOk());
+
+		var result = mockMvc.perform(post("/api/auth/refresh")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"refreshToken\":\"" + staleRefreshToken + "\"}"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.accessToken").isNotEmpty())
+				.andReturn();
+
+		String newAccessToken = objectMapper.readTree(result.getResponse().getContentAsString())
+				.get("accessToken")
+				.asText();
+		assertEquals("USER", jwtService.extractRole(newAccessToken));
+
+		mockMvc.perform(get("/api/admin/users")
+						.header(HttpHeaders.AUTHORIZATION, "Bearer " + newAccessToken))
+				.andExpect(status().isForbidden())
+				.andExpect(jsonPath("$.message").value("Access denied"));
+	}
+
+	@Test
 	void lastAdminCannotBeDowngraded() throws Exception {
 		User lastAdmin = userRepository.findByEmail(adminUserProperties.getEmail()).orElseThrow();
 		userRepository.findAll().stream()
@@ -202,7 +255,7 @@ class AdminUserManagementTest {
 					user.setRole(Role.USER);
 					userRepository.save(user);
 				});
-		String token = jwtService.generateToken("second-admin@library.com", Role.ADMIN);
+		String token = jwtService.generateToken(adminUserProperties.getEmail(), Role.ADMIN);
 
 		mockMvc.perform(patch("/api/admin/users/" + lastAdmin.getId() + "/role")
 						.header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
@@ -210,8 +263,8 @@ class AdminUserManagementTest {
 						.content("""
 								{ "role": "USER" }
 								"""))
-				.andExpect(status().isConflict())
-				.andExpect(jsonPath("$.message").value("Cannot remove, block, or delete the last remaining ADMIN account"));
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.message").value("You cannot change your own role"));
 	}
 
 	@Test
@@ -319,7 +372,7 @@ class AdminUserManagementTest {
 					user.setRole(Role.USER);
 					userRepository.save(user);
 				});
-		String token = jwtService.generateToken("second-admin@library.com", Role.ADMIN);
+		String token = jwtService.generateToken(adminUserProperties.getEmail(), Role.ADMIN);
 
 		mockMvc.perform(patch("/api/admin/users/" + lastAdmin.getId() + "/status")
 						.header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
@@ -327,8 +380,8 @@ class AdminUserManagementTest {
 						.content("""
 								{ "blocked": true }
 								"""))
-				.andExpect(status().isConflict())
-				.andExpect(jsonPath("$.message").value("Cannot remove, block, or delete the last remaining ADMIN account"));
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.message").value("You cannot block or unblock your own account"));
 	}
 
 	@Test
@@ -358,6 +411,20 @@ class AdminUserManagementTest {
 
 		mockMvc.perform(get("/api/user/profile")
 						.header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+				.andExpect(status().isForbidden())
+				.andExpect(jsonPath("$.message").value("Account is blocked"));
+	}
+
+	@Test
+	void blockedUserCannotRefresh() throws Exception {
+		User target = userRepository.findByEmail("user@library.com").orElseThrow();
+		String refreshToken = jwtService.generateRefreshToken(target.getEmail(), Role.USER);
+		target.setStatus(AccountStatus.BLOCKED);
+		userRepository.save(target);
+
+		mockMvc.perform(post("/api/auth/refresh")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"refreshToken\":\"" + refreshToken + "\"}"))
 				.andExpect(status().isForbidden())
 				.andExpect(jsonPath("$.message").value("Account is blocked"));
 	}

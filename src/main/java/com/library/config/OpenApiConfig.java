@@ -27,7 +27,9 @@ public class OpenApiConfig {
 								`POST /api/auth/login` or `POST /api/auth/register`. \
 								Include `Authorization: Bearer <accessToken>` on protected requests.
 
-								**Public endpoints:** `/api/auth/**` (no JWT required).
+								**Public endpoints:** `POST /api/auth/register`, `POST /api/auth/login`, \
+								and `POST /api/auth/refresh` (no JWT required). \
+								`POST /api/auth/change-password` requires authentication.
 
 								**Role-restricted endpoints:**
 								- `/api/admin/**` — ADMIN role only (includes `/api/admin/analytics/**`)

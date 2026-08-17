@@ -1,5 +1,6 @@
 package com.library.security;
 
+import com.library.entity.AccountStatus;
 import com.library.entity.Role;
 import com.library.entity.User;
 import com.library.repository.UserRepository;
@@ -223,10 +224,13 @@ class RoleAuthorizationTest {
 			user.setEmail(email);
 			user.setPassword(passwordEncoder.encode(rawPassword));
 			user.setRole(role);
+			user.setStatus(AccountStatus.ACTIVE);
 			userRepository.save(user);
 		} else {
 			User existing = userRepository.findByEmail(email).orElseThrow();
+			existing.setFullName(fullName);
 			existing.setRole(role);
+			existing.setStatus(AccountStatus.ACTIVE);
 			existing.setPassword(passwordEncoder.encode(rawPassword));
 			userRepository.save(existing);
 		}

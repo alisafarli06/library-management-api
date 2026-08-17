@@ -108,7 +108,7 @@ To call protected operations from Swagger:
 
 1. `POST /api/auth/login` or `POST /api/auth/register`.
 2. Copy `accessToken` from the response.
-3. Click **Authorize**, enter `Bearer <accessToken>`, and confirm.
+3. Click **Authorize**, paste the raw access token (do not add a `Bearer` prefix), and confirm.
 
 ### Endpoint map
 

@@ -2,6 +2,7 @@ package com.library.repository;
 
 import com.library.entity.Author;
 import com.library.entity.Book;
+import com.library.entity.FileMetadata;
 import com.library.service.BookService;
 import jakarta.persistence.EntityManager;
 import org.hibernate.Hibernate;
@@ -15,6 +16,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -31,6 +33,9 @@ class BookEntityGraphTest {
 
 	@Autowired
 	private AuthorRepository authorRepository;
+
+	@Autowired
+	private FileMetadataRepository fileMetadataRepository;
 
 	@Autowired
 	private BookService bookService;
@@ -69,6 +74,30 @@ class BookEntityGraphTest {
 	}
 
 	@Test
+	void findAll_withEntityGraph_initializesCoverAndPrefaceFiles() {
+		FileMetadata cover = saveFile("cover.png", "image/png");
+		FileMetadata preface = saveFile("preface.pdf", "application/pdf");
+		book.setCoverFile(cover);
+		book.setPrefaceFile(preface);
+		book = bookRepository.save(book);
+		entityManager.flush();
+		entityManager.clear();
+
+		Page<Book> page = bookRepository.findAll(PageRequest.of(0, 50));
+		Book loaded = page.getContent().stream()
+				.filter(item -> item.getId().equals(book.getId()))
+				.findFirst()
+				.orElseThrow();
+
+		assertTrue(Hibernate.isInitialized(loaded.getCoverFile()));
+		assertTrue(Hibernate.isInitialized(loaded.getPrefaceFile()));
+		assertEquals(cover.getId(), loaded.getCoverFile().getId());
+		assertEquals("cover.png", loaded.getCoverFile().getOriginalFilename());
+		assertEquals(preface.getId(), loaded.getPrefaceFile().getId());
+		assertEquals("preface.pdf", loaded.getPrefaceFile().getOriginalFilename());
+	}
+
+	@Test
 	void findAll_serviceStillMapsAuthorId() {
 		var result = bookService.findAll(PageRequest.of(0, 50));
 
@@ -104,14 +133,48 @@ class BookEntityGraphTest {
 		for (Book item : loaded) {
 			assertTrue(Hibernate.isInitialized(item.getAuthor()));
 			assertNotNull(item.getAuthor().getName());
+			if (item.getCoverFile() != null) {
+				assertTrue(Hibernate.isInitialized(item.getCoverFile()));
+				assertNotNull(item.getCoverFile().getOriginalFilename());
+			}
+			if (item.getPrefaceFile() != null) {
+				assertTrue(Hibernate.isInitialized(item.getPrefaceFile()));
+				assertNotNull(item.getPrefaceFile().getOriginalFilename());
+			}
 		}
 
 		long statementCount = statistics.getPrepareStatementCount();
 		assertTrue(
 				statementCount <= 2,
-				() -> "EntityGraph should load books+authors without N+1 (expected at most count + select, got "
+				() -> "EntityGraph should load books, authors, and files without N+1 (expected at most count + select, got "
 						+ statementCount + " statements)"
 		);
+	}
+
+	@Test
+	void findAllBySpecification_withEntityGraph_initializesAuthorAndFiles() {
+		FileMetadata cover = saveFile("search-cover.png", "image/png");
+		FileMetadata preface = saveFile("search-preface.pdf", "application/pdf");
+		book.setCoverFile(cover);
+		book.setPrefaceFile(preface);
+		book = bookRepository.save(book);
+		entityManager.flush();
+		entityManager.clear();
+
+		Page<Book> page = bookRepository.findAll(
+				BookSpecifications.titleContains(book.getTitle()),
+				PageRequest.of(0, 20)
+		);
+		Book loaded = page.getContent().stream()
+				.filter(item -> item.getId().equals(book.getId()))
+				.findFirst()
+				.orElseThrow();
+
+		assertTrue(Hibernate.isInitialized(loaded.getAuthor()));
+		assertTrue(Hibernate.isInitialized(loaded.getCoverFile()));
+		assertTrue(Hibernate.isInitialized(loaded.getPrefaceFile()));
+		assertEquals("search-cover.png", loaded.getCoverFile().getOriginalFilename());
+		assertEquals("search-preface.pdf", loaded.getPrefaceFile().getOriginalFilename());
 	}
 
 	private Author saveAuthor(String namePrefix) {
@@ -127,5 +190,15 @@ class BookEntityGraphTest {
 		created.setPublishedYear(2024);
 		created.setAuthor(bookAuthor);
 		return bookRepository.save(created);
+	}
+
+	private FileMetadata saveFile(String originalFilename, String contentType) {
+		FileMetadata file = new FileMetadata();
+		file.setOriginalFilename(originalFilename);
+		file.setStoredFilename(UUID.randomUUID() + "-" + originalFilename);
+		file.setContentType(contentType);
+		file.setSize(32);
+		file.setCreatedAt(Instant.now());
+		return fileMetadataRepository.save(file);
 	}
 }

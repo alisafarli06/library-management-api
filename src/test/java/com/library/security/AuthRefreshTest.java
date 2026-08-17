@@ -1,5 +1,6 @@
 package com.library.security;
 
+import com.library.entity.AccountStatus;
 import com.library.entity.Role;
 import com.library.entity.User;
 import com.library.repository.UserRepository;
@@ -45,6 +46,7 @@ class AuthRefreshTest {
 		user.setEmail("user@library.com");
 		user.setPassword(passwordEncoder.encode("User12345"));
 		user.setRole(Role.USER);
+		user.setStatus(AccountStatus.ACTIVE);
 		userRepository.save(user);
 	}
 

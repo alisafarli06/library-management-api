@@ -21,16 +21,16 @@ import jakarta.persistence.QueryHint;
 public interface BookRepository extends JpaRepository<Book, Long>, JpaSpecificationExecutor<Book> {
 
 	/**
-	 * Loads books with authors in one query to avoid N+1 when mapping authorId.
+	 * Loads books with author and file metadata in one query for list mapping.
 	 */
 	@Override
-	@EntityGraph(attributePaths = "author")
+	@EntityGraph(attributePaths = {"author", "coverFile", "prefaceFile"})
 	Page<Book> findAll(Pageable pageable);
 
 	/**
-	 * Same fetch plan for dynamic search results that also map authorId.
+	 * Same fetch plan for search results that map author and attachment fields.
 	 */
-	@EntityGraph(attributePaths = "author")
+	@EntityGraph(attributePaths = {"author", "coverFile", "prefaceFile"})
 	Page<Book> findAll(Specification<Book> spec, Pageable pageable);
 
 	@Override

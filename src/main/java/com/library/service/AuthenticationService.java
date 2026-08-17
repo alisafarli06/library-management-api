@@ -92,7 +92,7 @@ public class AuthenticationService {
 			if (user.getStatus() == AccountStatus.BLOCKED) {
 				throw new DisabledException(AdminUserService.ACCOUNT_BLOCKED_MESSAGE);
 			}
-			return issueTokens(email, Role.valueOf(roleClaim));
+			return issueTokens(email, user.getRole());
 		} catch (ExpiredJwtException ex) {
 			throw new CredentialsExpiredException("Refresh token expired");
 		} catch (UsernameNotFoundException | JwtException | IllegalArgumentException ex) {

@@ -29,6 +29,7 @@ class ApplicationConfigurationProfileTest {
 		assertTrue(prodYaml.contains("${DB_URL}"));
 		assertTrue(prodYaml.contains("${DB_USERNAME}"));
 		assertTrue(prodYaml.contains("${FILE_STORAGE_DIRECTORY}"));
+		assertTrue(prodYaml.contains("${FRONTEND_ORIGIN:${CORS_ALLOWED_ORIGINS}}"));
 		assertTrue(prodYaml.contains("${ADMIN_INITIAL_PASSWORD:${ADMIN_PASSWORD}}"));
 		assertTrue(prodYaml.contains("${ADMIN_PASSWORD}"));
 		assertFalse(prodYaml.contains("ADMIN_PASSWORD:"));
@@ -50,6 +51,8 @@ class ApplicationConfigurationProfileTest {
 		assertTrue(baseYaml.contains("CACHE_BOOKS_MAXIMUM_SIZE"));
 		assertTrue(baseYaml.contains("FILE_CLEANUP_CRON"));
 		assertTrue(baseYaml.contains("ASYNC_NOTIFICATION_DELAY_MS"));
+		assertTrue(baseYaml.contains("FRONTEND_ORIGIN"));
+		assertTrue(devYaml.contains("FRONTEND_ORIGIN"));
 		assertTrue(baseYaml.contains("ADMIN_INITIAL_PASSWORD"));
 		assertTrue(baseYaml.contains("ADMIN_PASSWORD"));
 		assertTrue(devYaml.contains("ADMIN_INITIAL_PASSWORD"));

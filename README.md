@@ -137,7 +137,8 @@ Configuration uses environment variables. Values in the active profile / `applic
 | `ADMIN_FULL_NAME` | Bootstrap ADMIN display name | `Ali Safarli` | `Ali Safarli` |
 | `ADMIN_INITIAL_PASSWORD` | Bootstrap ADMIN password (used only when that email does not exist) | falls back to `ADMIN_PASSWORD` | **required** (or `ADMIN_PASSWORD`) |
 | `ADMIN_PASSWORD` | Fallback bootstrap ADMIN password | `CHANGE_ME_ADMIN_PASSWORD` | **required** if `ADMIN_INITIAL_PASSWORD` is unset |
-| `CORS_ALLOWED_ORIGINS` | Comma-separated browser origins allowed to call the API | empty | e.g. `https://your-app.vercel.app` |
+| `FRONTEND_ORIGIN` | Browser origin of the deployed frontend | localhost Vite origins | **required** (Vercel URL, no trailing slash) |
+| `CORS_ALLOWED_ORIGINS` | Optional comma-separated extra origins | used if `FRONTEND_ORIGIN` is unset in prod | optional fallback |
 
 ### Example (Windows PowerShell)
 
@@ -185,7 +186,7 @@ Set these on the API service (not on Vercel):
 | `JWT_SECRET` | yes |
 | `ADMIN_INITIAL_PASSWORD` | yes (or `ADMIN_PASSWORD`) |
 | `FILE_STORAGE_DIRECTORY` | yes |
-| `CORS_ALLOWED_ORIGINS` | yes for the Vercel frontend |
+| `FRONTEND_ORIGIN` | yes — Vercel origin, no trailing slash |
 
 Do not put `ADMIN_INITIAL_PASSWORD` in frontend / Vercel environment variables or in GitHub.
 

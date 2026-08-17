@@ -59,6 +59,9 @@ app:
       queue-capacity: ${ASYNC_EXECUTOR_QUEUE_CAPACITY:100}
     notification:
       delay-ms: ${ASYNC_NOTIFICATION_DELAY_MS:500}
+  cors:
+    # Production: set FRONTEND_ORIGIN to the Vercel origin (no trailing slash).
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:${FRONTEND_ORIGIN:http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173}}
   admin:
     email: ${ADMIN_EMAIL:alisafarli@gmail.com}
     full-name: ${ADMIN_FULL_NAME:Ali Safarli}
@@ -73,6 +76,7 @@ app:
 #   JWT_SECRET
 #   FILE_STORAGE_DIRECTORY
 #   ADMIN_INITIAL_PASSWORD (or ADMIN_PASSWORD)
+#   FRONTEND_ORIGIN (Vercel origin, e.g. https://your-app.vercel.app)
 #
 # Flyway manages schema (classpath:db/migration). Hibernate ddl-auto is validate.
 # -----------------------------------------------------------------------------

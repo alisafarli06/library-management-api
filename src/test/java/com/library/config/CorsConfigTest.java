@@ -29,9 +29,27 @@ class CorsConfigTest {
 	}
 
 	@Test
-	void allowsVercelOriginAndRequiredMethodsAndHeadersWithoutWildcardCredentials() {
+	void allowsLocalhostOriginsAndRejectsUnknownOrigin() {
 		CorsProperties properties = new CorsProperties();
-		properties.setAllowedOrigins(VERCEL_ORIGIN + ",http://localhost:5173");
+		properties.setAllowedOrigins("http://localhost:5173,http://127.0.0.1:5173");
+		CorsConfigurationSource source = new CorsConfig().corsConfigurationSource(properties);
+
+		MockHttpServletRequest request = new MockHttpServletRequest("OPTIONS", "/api/auth/login");
+		request.addHeader(HttpHeaders.ORIGIN, "http://localhost:5173");
+		CorsConfiguration configuration = source.getCorsConfiguration(request);
+
+		assertNotNull(configuration);
+		assertEquals("http://localhost:5173", configuration.checkOrigin("http://localhost:5173"));
+		assertEquals("http://127.0.0.1:5173", configuration.checkOrigin("http://127.0.0.1:5173"));
+		assertNull(configuration.checkOrigin("https://evil.example"));
+		assertFalse(Boolean.TRUE.equals(configuration.getAllowCredentials()));
+		assertNotNull(configuration.checkHeaders(List.of(HttpHeaders.AUTHORIZATION, HttpHeaders.CONTENT_TYPE)));
+	}
+
+	@Test
+	void allowsVercelOriginFromProductionConfiguration() {
+		CorsProperties properties = new CorsProperties();
+		properties.setAllowedOrigins(VERCEL_ORIGIN);
 		CorsConfigurationSource source = new CorsConfig().corsConfigurationSource(properties);
 
 		MockHttpServletRequest request = new MockHttpServletRequest("OPTIONS", "/api/auth/login");
@@ -40,7 +58,7 @@ class CorsConfigTest {
 
 		assertNotNull(configuration);
 		assertEquals(VERCEL_ORIGIN, configuration.checkOrigin(VERCEL_ORIGIN));
-		assertEquals("http://localhost:5173", configuration.checkOrigin("http://localhost:5173"));
+		assertNull(configuration.checkOrigin("http://localhost:5173"));
 		assertNull(configuration.checkOrigin("https://evil.example"));
 		assertFalse(Boolean.TRUE.equals(configuration.getAllowCredentials()));
 		assertNotNull(configuration.checkHttpMethod(HttpMethod.GET));

@@ -1,5 +1,6 @@
 package com.library.config;
 
+import com.library.entity.AccountStatus;
 import com.library.entity.Role;
 import com.library.entity.User;
 import com.library.repository.UserRepository;
@@ -55,6 +56,7 @@ public class AdminUserInitializer implements CommandLineRunner {
 		created.setEmail(adminEmail);
 		created.setPassword(passwordEncoder.encode(adminUserProperties.getPassword()));
 		created.setRole(Role.ADMIN);
+		created.setStatus(AccountStatus.ACTIVE);
 		User saved = userRepository.save(created);
 		log.info("Created bootstrap ADMIN user {}", adminEmail);
 		return saved;

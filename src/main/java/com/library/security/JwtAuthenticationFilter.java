@@ -1,5 +1,8 @@
 package com.library.security;
 
+import com.library.entity.AccountStatus;
+import com.library.repository.UserRepository;
+import com.library.service.AdminUserService;
 import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -25,9 +28,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 	private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
 	private final JwtService jwtService;
+	private final UserRepository userRepository;
 
-	public JwtAuthenticationFilter(JwtService jwtService) {
+	public JwtAuthenticationFilter(JwtService jwtService, UserRepository userRepository) {
 		this.jwtService = jwtService;
+		this.userRepository = userRepository;
 	}
 
 	@Override
@@ -58,13 +63,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 					&& SecurityContextHolder.getContext().getAuthentication() == null
 					&& jwtService.isAccessToken(token)
 					&& jwtService.isTokenValid(token, email)) {
-				UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-						email,
-						null,
-						List.of(new SimpleGrantedAuthority("ROLE_" + role))
-				);
-				authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-				SecurityContextHolder.getContext().setAuthentication(authentication);
+				var user = userRepository.findByEmail(email);
+				if (user.isPresent() && user.get().getStatus() == AccountStatus.BLOCKED) {
+					SecurityContextHolder.clearContext();
+					request.setAttribute(JwtAuthenticationEntryPoint.JWT_ERROR_ATTRIBUTE, AdminUserService.ACCOUNT_BLOCKED_MESSAGE);
+				} else if (user.isPresent()) {
+					UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+							email,
+							null,
+							List.of(new SimpleGrantedAuthority("ROLE_" + role))
+					);
+					authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+					SecurityContextHolder.getContext().setAuthentication(authentication);
+				}
 			}
 		} catch (ExpiredJwtException ex) {
 			SecurityContextHolder.clearContext();

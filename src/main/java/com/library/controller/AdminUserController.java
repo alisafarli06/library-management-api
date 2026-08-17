@@ -4,6 +4,8 @@ import com.library.config.OpenApiConfig;
 import com.library.config.openapi.RoleRestrictedResponses;
 import com.library.dto.AdminUserDto;
 import com.library.dto.UpdateUserRoleRequest;
+import com.library.dto.UpdateUserStatusRequest;
+import com.library.entity.AccountStatus;
 import com.library.entity.Role;
 import com.library.exception.ErrorResponse;
 import com.library.service.AdminUserService;
@@ -51,7 +53,7 @@ public class AdminUserController {
 			summary = "List users",
 			description = "Returns a paginated list of user accounts. Optional `q` matches full name or email "
 					+ "(case-insensitive contains). Optional `role` filters by USER or ADMIN. "
-					+ "Password hashes are never returned."
+					+ "Optional `status` filters by ACTIVE or BLOCKED. Password hashes are never returned."
 	)
 	@ApiResponse(
 			responseCode = "200",
@@ -62,8 +64,9 @@ public class AdminUserController {
 	public Page<AdminUserDto> search(
 			@RequestParam(required = false) String q,
 			@RequestParam(required = false) Role role,
+			@RequestParam(required = false) AccountStatus status,
 			@ParameterObject Pageable pageable) {
-		return adminUserService.search(q, role, pageable);
+		return adminUserService.search(q, role, status, pageable);
 	}
 
 	@GetMapping("/{id}")
@@ -98,7 +101,7 @@ public class AdminUserController {
 					schema = @Schema(implementation = AdminUserDto.class)))
 	@ApiResponse(
 			responseCode = "400",
-			description = "Validation failed",
+			description = "Validation failed or self-action rejected",
 			content = @Content(
 					mediaType = MediaType.APPLICATION_JSON_VALUE,
 					schema = @Schema(implementation = ErrorResponse.class)))
@@ -116,8 +119,48 @@ public class AdminUserController {
 					schema = @Schema(implementation = ErrorResponse.class)))
 	public AdminUserDto updateRole(
 			@Parameter(description = "User identifier", required = true, example = "1") @PathVariable Long id,
-			@Valid @RequestBody UpdateUserRoleRequest request) {
-		return adminUserService.updateRole(id, request.getRole());
+			@Valid @RequestBody UpdateUserRoleRequest request,
+			Authentication authentication) {
+		return adminUserService.updateRole(id, request.getRole(), authentication.getName());
+	}
+
+	@PatchMapping("/{id}/status")
+	@Operation(
+			summary = "Change user status",
+			description = "Blocks or unblocks a user. Send `{ \"blocked\": true }` to block and "
+					+ "`{ \"blocked\": false }` to unblock. Blocked users cannot log in and existing "
+					+ "JWTs are rejected. Rejects blocking your own account or the last remaining ADMIN."
+	)
+	@ApiResponse(
+			responseCode = "200",
+			description = "Status updated",
+			content = @Content(
+					mediaType = MediaType.APPLICATION_JSON_VALUE,
+					schema = @Schema(implementation = AdminUserDto.class)))
+	@ApiResponse(
+			responseCode = "400",
+			description = "Validation failed or self-action rejected",
+			content = @Content(
+					mediaType = MediaType.APPLICATION_JSON_VALUE,
+					schema = @Schema(implementation = ErrorResponse.class)))
+	@ApiResponse(
+			responseCode = "404",
+			description = "User not found",
+			content = @Content(
+					mediaType = MediaType.APPLICATION_JSON_VALUE,
+					schema = @Schema(implementation = ErrorResponse.class)))
+	@ApiResponse(
+			responseCode = "409",
+			description = "Last remaining ADMIN cannot be blocked",
+			content = @Content(
+					mediaType = MediaType.APPLICATION_JSON_VALUE,
+					schema = @Schema(implementation = ErrorResponse.class)))
+	public AdminUserDto updateStatus(
+			@Parameter(description = "User identifier", required = true, example = "1") @PathVariable Long id,
+			@Valid @RequestBody UpdateUserStatusRequest request,
+			Authentication authentication) {
+		AccountStatus status = Boolean.TRUE.equals(request.getBlocked()) ? AccountStatus.BLOCKED : AccountStatus.ACTIVE;
+		return adminUserService.updateStatus(id, status, authentication.getName());
 	}
 
 	@DeleteMapping("/{id}")
@@ -129,6 +172,12 @@ public class AdminUserController {
 	)
 	@ApiResponse(responseCode = "204", description = "User deleted")
 	@ApiResponse(
+			responseCode = "400",
+			description = "Self-delete rejected",
+			content = @Content(
+					mediaType = MediaType.APPLICATION_JSON_VALUE,
+					schema = @Schema(implementation = ErrorResponse.class)))
+	@ApiResponse(
 			responseCode = "404",
 			description = "User not found",
 			content = @Content(
@@ -136,7 +185,7 @@ public class AdminUserController {
 					schema = @Schema(implementation = ErrorResponse.class)))
 	@ApiResponse(
 			responseCode = "409",
-			description = "User cannot be deleted (own account, last ADMIN, or linked borrow records)",
+			description = "User cannot be deleted (last ADMIN or linked borrow records)",
 			content = @Content(
 					mediaType = MediaType.APPLICATION_JSON_VALUE,
 					schema = @Schema(implementation = ErrorResponse.class)))

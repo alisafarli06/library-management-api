@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpHeaders;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
@@ -12,11 +13,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
+@SpringBootTest(properties = "FRONTEND_ORIGIN=https://library-management-web-4tu2-woad.vercel.app")
 @AutoConfigureMockMvc
+@ActiveProfiles("dev")
 class CorsSecurityTest {
 
 	private static final String LOCAL_ORIGIN = "http://localhost:5173";
+	private static final String LOCAL_LOOPBACK_ORIGIN = "http://127.0.0.1:5173";
 
 	@Autowired
 	private MockMvc mockMvc;
@@ -26,7 +29,7 @@ class CorsSecurityTest {
 		mockMvc.perform(options("/api/auth/login")
 						.header(HttpHeaders.ORIGIN, LOCAL_ORIGIN)
 						.header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "POST")
-						.header(HttpHeaders.ACCESS_CONTROL_REQUEST_HEADERS, "content-type"))
+						.header(HttpHeaders.ACCESS_CONTROL_REQUEST_HEADERS, "authorization,content-type"))
 				.andExpect(status().isOk())
 				.andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, LOCAL_ORIGIN))
 				.andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, org.hamcrest.Matchers.containsString("POST")));
@@ -51,6 +54,16 @@ class CorsSecurityTest {
 								{"email":"nobody@library.com","password":"Password123"}
 								"""))
 				.andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, LOCAL_ORIGIN));
+	}
+
+	@Test
+	void preflightFromLoopbackOriginIsAllowedWithoutJwt() throws Exception {
+		mockMvc.perform(options("/api/auth/login")
+						.header(HttpHeaders.ORIGIN, LOCAL_LOOPBACK_ORIGIN)
+						.header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "POST")
+						.header(HttpHeaders.ACCESS_CONTROL_REQUEST_HEADERS, "authorization,content-type"))
+				.andExpect(status().isOk())
+				.andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, LOCAL_LOOPBACK_ORIGIN));
 	}
 
 	@Test

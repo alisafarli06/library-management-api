@@ -1,9 +1,11 @@
 package com.library.service;
 
 import com.library.dto.AdminUserDto;
+import com.library.entity.AccountStatus;
 import com.library.entity.Member;
 import com.library.entity.Role;
 import com.library.entity.User;
+import com.library.exception.BadRequestException;
 import com.library.exception.ConflictException;
 import com.library.exception.ResourceNotFoundException;
 import com.library.repository.LoanRepository;
@@ -52,7 +54,7 @@ class AdminUserServiceTest {
 		when(userRepository.findAll(org.mockito.ArgumentMatchers.<Specification<User>>any(), any(PageRequest.class)))
 				.thenReturn(new PageImpl<>(List.of(user)));
 
-		Page<AdminUserDto> page = adminUserService.search("ada", null, PageRequest.of(0, 20));
+		Page<AdminUserDto> page = adminUserService.search("ada", null, null, PageRequest.of(0, 20));
 
 		assertEquals(1, page.getContent().size());
 		AdminUserDto dto = page.getContent().getFirst();
@@ -60,6 +62,7 @@ class AdminUserServiceTest {
 		assertEquals("Ada Lovelace", dto.getFullName());
 		assertEquals("ada@library.com", dto.getEmail());
 		assertEquals(Role.USER, dto.getRole());
+		assertEquals(AccountStatus.ACTIVE, dto.getStatus());
 		assertNull(readPasswordIfPresent(dto));
 	}
 
@@ -69,20 +72,33 @@ class AdminUserServiceTest {
 		when(userRepository.findById(2L)).thenReturn(Optional.of(user));
 		when(userRepository.save(user)).thenReturn(user);
 
-		AdminUserDto dto = adminUserService.updateRole(2L, Role.ADMIN);
+		AdminUserDto dto = adminUserService.updateRole(2L, Role.ADMIN, "admin@library.com");
 
 		assertEquals(Role.ADMIN, user.getRole());
 		assertEquals(Role.ADMIN, dto.getRole());
 	}
 
 	@Test
+	void updateRoleRejectsSelfDemotion() {
+		User user = user(1L, "Ali Safarli", "alisafarli@gmail.com", Role.ADMIN);
+		when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+		BadRequestException ex = assertThrows(
+				BadRequestException.class,
+				() -> adminUserService.updateRole(1L, Role.USER, "alisafarli@gmail.com")
+		);
+		assertEquals("You cannot change your own role", ex.getMessage());
+		verify(userRepository, never()).save(any());
+	}
+
+	@Test
 	void updateRoleDemotesAdminWhenAnotherAdminExists() {
 		User user = user(3L, "Second Admin", "second@library.com", Role.ADMIN);
 		when(userRepository.findById(3L)).thenReturn(Optional.of(user));
-		when(userRepository.countByRole(Role.ADMIN)).thenReturn(2L);
+		when(userRepository.countByRoleAndStatus(Role.ADMIN, AccountStatus.ACTIVE)).thenReturn(2L);
 		when(userRepository.save(user)).thenReturn(user);
 
-		AdminUserDto dto = adminUserService.updateRole(3L, Role.USER);
+		AdminUserDto dto = adminUserService.updateRole(3L, Role.USER, "admin@library.com");
 
 		assertEquals(Role.USER, dto.getRole());
 	}
@@ -91,11 +107,50 @@ class AdminUserServiceTest {
 	void updateRoleRejectsDowngradingTheLastAdmin() {
 		User user = user(1L, "Ali Safarli", "alisafarli@gmail.com", Role.ADMIN);
 		when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-		when(userRepository.countByRole(Role.ADMIN)).thenReturn(1L);
+		when(userRepository.countByRoleAndStatus(Role.ADMIN, AccountStatus.ACTIVE)).thenReturn(1L);
 
-		ConflictException ex = assertThrows(ConflictException.class, () -> adminUserService.updateRole(1L, Role.USER));
-		assertEquals("Cannot remove or delete the last remaining ADMIN account", ex.getMessage());
+		ConflictException ex = assertThrows(
+				ConflictException.class,
+				() -> adminUserService.updateRole(1L, Role.USER, "other-admin@library.com")
+		);
+		assertEquals(AdminUserService.LAST_ADMIN_MESSAGE, ex.getMessage());
 		verify(userRepository, never()).save(any());
+	}
+
+	@Test
+	void updateStatusBlocksUser() {
+		User user = user(2L, "Ada Lovelace", "ada@library.com", Role.USER);
+		when(userRepository.findById(2L)).thenReturn(Optional.of(user));
+		when(userRepository.save(user)).thenReturn(user);
+
+		AdminUserDto dto = adminUserService.updateStatus(2L, AccountStatus.BLOCKED, "admin@library.com");
+
+		assertEquals(AccountStatus.BLOCKED, dto.getStatus());
+	}
+
+	@Test
+	void updateStatusRejectsSelfBlock() {
+		User user = user(1L, "Ali Safarli", "alisafarli@gmail.com", Role.ADMIN);
+		when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+		BadRequestException ex = assertThrows(
+				BadRequestException.class,
+				() -> adminUserService.updateStatus(1L, AccountStatus.BLOCKED, "alisafarli@gmail.com")
+		);
+		assertEquals("You cannot block or unblock your own account", ex.getMessage());
+	}
+
+	@Test
+	void updateStatusRejectsBlockingLastAdmin() {
+		User user = user(1L, "Ali Safarli", "alisafarli@gmail.com", Role.ADMIN);
+		when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+		when(userRepository.countByRoleAndStatus(Role.ADMIN, AccountStatus.ACTIVE)).thenReturn(1L);
+
+		ConflictException ex = assertThrows(
+				ConflictException.class,
+				() -> adminUserService.updateStatus(1L, AccountStatus.BLOCKED, "other-admin@library.com")
+		);
+		assertEquals(AdminUserService.LAST_ADMIN_MESSAGE, ex.getMessage());
 	}
 
 	@Test
@@ -103,8 +158,8 @@ class AdminUserServiceTest {
 		User user = user(4L, "Self", "self@library.com", Role.USER);
 		when(userRepository.findById(4L)).thenReturn(Optional.of(user));
 
-		ConflictException ex = assertThrows(
-				ConflictException.class,
+		BadRequestException ex = assertThrows(
+				BadRequestException.class,
 				() -> adminUserService.delete(4L, "self@library.com")
 		);
 		assertEquals("You cannot delete your own account", ex.getMessage());
@@ -115,7 +170,7 @@ class AdminUserServiceTest {
 	void deleteRejectsLastAdmin() {
 		User user = user(1L, "Ali Safarli", "alisafarli@gmail.com", Role.ADMIN);
 		when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-		when(userRepository.countByRole(Role.ADMIN)).thenReturn(1L);
+		when(userRepository.countByRoleAndStatus(Role.ADMIN, AccountStatus.ACTIVE)).thenReturn(1L);
 
 		assertThrows(ConflictException.class, () -> adminUserService.delete(1L, "other-admin@library.com"));
 		verify(userRepository, never()).delete(any(User.class));
@@ -151,6 +206,7 @@ class AdminUserServiceTest {
 		user.setEmail(email);
 		user.setPassword("secret-hash");
 		user.setRole(role);
+		user.setStatus(AccountStatus.ACTIVE);
 		user.setCreatedAt(Instant.parse("2026-01-01T00:00:00Z"));
 		return user;
 	}

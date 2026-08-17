@@ -79,6 +79,9 @@ class MemberServiceTest {
 		assertEquals(1L, result.getContent().getFirst().getId());
 		assertEquals("Ali Safarli", result.getContent().getFirst().getName());
 		assertEquals("ali.safarli@gmail.com", result.getContent().getFirst().getEmail());
+		assertEquals(7L, result.getContent().getFirst().getUserId());
+		assertEquals(com.library.entity.Role.USER, result.getContent().getFirst().getRole());
+		assertEquals(com.library.entity.AccountStatus.ACTIVE, result.getContent().getFirst().getStatus());
 		verify(memberRepository).findAll(any(org.springframework.data.jpa.domain.Specification.class), eq(pageable));
 	}
 
@@ -328,6 +331,12 @@ class MemberServiceTest {
 		member.setId(id);
 		member.setName(name);
 		member.setEmail(email);
+		User user = new User();
+		user.setId(7L);
+		user.setEmail(email);
+		user.setRole(com.library.entity.Role.USER);
+		user.setStatus(com.library.entity.AccountStatus.ACTIVE);
+		member.setUser(user);
 		return member;
 	}
 

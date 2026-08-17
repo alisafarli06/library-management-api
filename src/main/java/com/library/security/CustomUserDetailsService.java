@@ -25,6 +25,7 @@ public class CustomUserDetailsService implements UserDetailsService {
 				.username(user.getEmail())
 				.password(user.getPassword())
 				.roles(user.getRole().name())
+				.disabled(user.getStatus() == com.library.entity.AccountStatus.BLOCKED)
 				.build();
 	}
 }

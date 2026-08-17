@@ -6,6 +6,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
@@ -102,6 +103,17 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler(BindException.class)
 	public ResponseEntity<ErrorResponse> handleBindException(BindException ex) {
 		return buildValidationErrorResponse(ex.getBindingResult().getFieldErrors(), ex.getBindingResult().getGlobalErrors());
+	}
+
+	@ExceptionHandler(DisabledException.class)
+	public ResponseEntity<ErrorResponse> handleDisabledAccount(DisabledException ex) {
+		ErrorResponse body = new ErrorResponse(
+				Instant.now(),
+				HttpStatus.FORBIDDEN.value(),
+				"Forbidden",
+				"Account is blocked"
+		);
+		return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
 	}
 
 	@ExceptionHandler(BadCredentialsException.class)

@@ -7,7 +7,8 @@ public class CorsProperties {
 
 	/**
 	 * Comma-separated browser origins allowed to call the API.
-	 * Prefer {@code FRONTEND_ORIGIN} (or {@code CORS_ALLOWED_ORIGINS}).
+	 * Dev defaults to local Vite origins. Prod uses {@code FRONTEND_ORIGIN}
+	 * (with {@code CORS_ALLOWED_ORIGINS} as a fallback).
 	 */
 	private String allowedOrigins = "";
 

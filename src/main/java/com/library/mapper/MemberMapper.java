@@ -2,6 +2,7 @@ package com.library.mapper;
 
 import com.library.dto.MemberDto;
 import com.library.entity.Member;
+import com.library.entity.User;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -13,6 +14,12 @@ public class MemberMapper {
 		dto.setName(member.getName());
 		dto.setEmail(member.getEmail());
 		dto.setActiveLoanCount(member.getActiveLoanCount() != null ? member.getActiveLoanCount() : 0L);
+		User user = member.getUser();
+		if (user != null) {
+			dto.setUserId(user.getId());
+			dto.setRole(user.getRole());
+			dto.setStatus(user.getStatus());
+		}
 		return dto;
 	}
 

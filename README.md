@@ -5,6 +5,7 @@ REST API for managing authors, books, and library members. Built with Spring Boo
 ## Features
 
 - Full CRUD REST endpoints for Author, Book, and Member
+- ADMIN user management: list accounts, change roles, block/unblock, and delete when safe
 - DTO-based API responses (entities are never exposed)
 - Jakarta Bean Validation on request payloads
 - Centralized exception handling with consistent JSON error responses
@@ -137,8 +138,8 @@ Configuration uses environment variables. Values in the active profile / `applic
 | `ADMIN_FULL_NAME` | Bootstrap ADMIN display name | `Ali Safarli` | `Ali Safarli` |
 | `ADMIN_INITIAL_PASSWORD` | Bootstrap ADMIN password (used only when that email does not exist) | falls back to `ADMIN_PASSWORD` | **required** (or `ADMIN_PASSWORD`) |
 | `ADMIN_PASSWORD` | Fallback bootstrap ADMIN password | `CHANGE_ME_ADMIN_PASSWORD` | **required** if `ADMIN_INITIAL_PASSWORD` is unset |
-| `FRONTEND_ORIGIN` | Browser origin of the deployed frontend | localhost Vite origins | **required** (Vercel URL, no trailing slash) |
-| `CORS_ALLOWED_ORIGINS` | Optional comma-separated extra origins | used if `FRONTEND_ORIGIN` is unset in prod | optional fallback |
+| `FRONTEND_ORIGIN` | Browser origin of the deployed frontend (prod CORS) | unused in `dev` (localhost Vite origins) | **required** (Vercel URL, no trailing slash) |
+| `CORS_ALLOWED_ORIGINS` | Optional comma-separated CORS origins | `http://localhost:5173`, `http://127.0.0.1:5173`, `http://localhost:4173` | optional fallback if `FRONTEND_ORIGIN` is unset |
 
 ### Example (Windows PowerShell)
 
@@ -319,6 +320,19 @@ Example login body:
 
 A Postman collection is **not** required for this submission because Swagger/OpenAPI covers interactive API exploration.
 
+### Admin user management
+
+Authenticated **ADMIN** users can manage linked login accounts from the web app **Members** page (`/members`), or via `/api/admin/users`. Role and blocked status live on the `User` entity, not `Member`. Responses never include passwords or password hashes.
+
+Account status is `ACTIVE` or `BLOCKED` (`V12__add_users_status.sql`). Block or unblock with `PATCH /api/admin/users/{id}/status` and body `{ "blocked": true }` or `{ "blocked": false }`. Blocked users cannot log in, cannot refresh tokens, and existing JWTs are rejected with **403** `Account is blocked`.
+
+Guards enforced on the backend:
+
+- USER and unauthenticated callers cannot use these endpoints (403 / 401).
+- An admin cannot change their own role, block themselves, or delete themselves (400).
+- The last remaining **ACTIVE** ADMIN cannot be demoted, blocked, or deleted (409).
+- Hard delete is refused with 409 when the linked member has borrow records; block the account instead.
+
 ## Example API Endpoints
 
 | Method | Endpoint | Description | Status |
@@ -333,10 +347,11 @@ A Postman collection is **not** required for this submission because Swagger/Ope
 | POST | `/api/books` | Create book | 201 |
 | PUT | `/api/books/{id}` | Update book | 200 |
 | DELETE | `/api/books/{id}` | Delete book | 204 |
-| GET | `/api/admin/users` | List users (ADMIN, paginated; optional `q`, `role`) | 200 |
+| GET | `/api/admin/users` | List users (ADMIN, paginated; optional `q`, `role`, `status`) | 200 |
 | GET | `/api/admin/users/{id}` | Get user by ID (ADMIN) | 200 |
 | PATCH | `/api/admin/users/{id}/role` | Change user role (ADMIN) | 200 |
-| DELETE | `/api/admin/users/{id}` | Delete user (ADMIN) | 204 |
+| PATCH | `/api/admin/users/{id}/status` | Block or unblock a user (`{ "blocked": true \| false }`) (ADMIN) | 200 |
+| DELETE | `/api/admin/users/{id}` | Delete user (ADMIN; 409 if the linked member has loans) | 204 |
 | GET | `/api/members` | List members (paginated) | 200 |
 | GET | `/api/members/{id}` | Get member by ID | 200 |
 | POST | `/api/members` | Create member | 201 |

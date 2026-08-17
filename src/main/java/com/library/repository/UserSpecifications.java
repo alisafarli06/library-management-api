@@ -1,5 +1,6 @@
 package com.library.repository;
 
+import com.library.entity.AccountStatus;
 import com.library.entity.Role;
 import com.library.entity.User;
 import org.springframework.data.jpa.domain.Specification;
@@ -29,6 +30,15 @@ public final class UserSpecifications {
 				return null;
 			}
 			return builder.equal(root.get("role"), role);
+		};
+	}
+
+	public static Specification<User> hasStatus(AccountStatus status) {
+		return (root, query, builder) -> {
+			if (status == null) {
+				return null;
+			}
+			return builder.equal(root.get("status"), status);
 		};
 	}
 }

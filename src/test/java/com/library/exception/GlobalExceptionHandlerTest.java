@@ -63,6 +63,20 @@ class GlobalExceptionHandlerTest {
 	}
 
 	@Test
+	void handleDisabledAccount_returnsForbiddenWithBlockedMessage() {
+		ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleDisabledAccount(
+				new org.springframework.security.authentication.DisabledException("User is disabled")
+		);
+
+		assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+		ErrorResponse body = response.getBody();
+		assertNotNull(body);
+		assertEquals(403, body.getStatus());
+		assertEquals("Forbidden", body.getError());
+		assertEquals("Account is blocked", body.getMessage());
+	}
+
+	@Test
 	void handleUnexpectedError_returnsInternalServerErrorWithoutExposingDetails() {
 		// Arrange
 		Exception exception = new RuntimeException("sensitive database details");

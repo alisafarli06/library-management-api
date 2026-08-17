@@ -1,5 +1,7 @@
 package com.library.dto;
 
+import com.library.entity.AccountStatus;
+import com.library.entity.Role;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -27,6 +29,15 @@ public class MemberDto {
 			example = "1",
 			accessMode = Schema.AccessMode.READ_ONLY)
 	private Long activeLoanCount;
+
+	@Schema(description = "Linked user account id, if this member can log in", example = "12", accessMode = Schema.AccessMode.READ_ONLY)
+	private Long userId;
+
+	@Schema(description = "Linked user role", example = "USER", accessMode = Schema.AccessMode.READ_ONLY)
+	private Role role;
+
+	@Schema(description = "Linked user account status", example = "ACTIVE", accessMode = Schema.AccessMode.READ_ONLY)
+	private AccountStatus status;
 
 	public MemberDto() {
 	}
@@ -61,5 +72,29 @@ public class MemberDto {
 
 	public void setActiveLoanCount(Long activeLoanCount) {
 		this.activeLoanCount = activeLoanCount;
+	}
+
+	public Long getUserId() {
+		return userId;
+	}
+
+	public void setUserId(Long userId) {
+		this.userId = userId;
+	}
+
+	public Role getRole() {
+		return role;
+	}
+
+	public void setRole(Role role) {
+		this.role = role;
+	}
+
+	public AccountStatus getStatus() {
+		return status;
+	}
+
+	public void setStatus(AccountStatus status) {
+		this.status = status;
 	}
 }

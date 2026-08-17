@@ -1,5 +1,6 @@
 package com.library.dto;
 
+import com.library.entity.AccountStatus;
 import com.library.entity.Role;
 import io.swagger.v3.oas.annotations.media.Schema;
 
@@ -20,17 +21,21 @@ public class AdminUserDto {
 	@Schema(description = "Assigned role", example = "ADMIN")
 	private Role role;
 
+	@Schema(description = "Account status", example = "ACTIVE")
+	private AccountStatus status;
+
 	@Schema(description = "Account creation timestamp")
 	private Instant createdAt;
 
 	public AdminUserDto() {
 	}
 
-	public AdminUserDto(Long id, String fullName, String email, Role role, Instant createdAt) {
+	public AdminUserDto(Long id, String fullName, String email, Role role, AccountStatus status, Instant createdAt) {
 		this.id = id;
 		this.fullName = fullName;
 		this.email = email;
 		this.role = role;
+		this.status = status;
 		this.createdAt = createdAt;
 	}
 
@@ -64,6 +69,14 @@ public class AdminUserDto {
 
 	public void setRole(Role role) {
 		this.role = role;
+	}
+
+	public AccountStatus getStatus() {
+		return status;
+	}
+
+	public void setStatus(AccountStatus status) {
+		this.status = status;
 	}
 
 	public Instant getCreatedAt() {

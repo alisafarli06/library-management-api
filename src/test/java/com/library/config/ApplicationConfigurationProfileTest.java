@@ -51,8 +51,12 @@ class ApplicationConfigurationProfileTest {
 		assertTrue(baseYaml.contains("CACHE_BOOKS_MAXIMUM_SIZE"));
 		assertTrue(baseYaml.contains("FILE_CLEANUP_CRON"));
 		assertTrue(baseYaml.contains("ASYNC_NOTIFICATION_DELAY_MS"));
-		assertTrue(baseYaml.contains("FRONTEND_ORIGIN"));
-		assertTrue(devYaml.contains("FRONTEND_ORIGIN"));
+		assertTrue(baseYaml.contains("http://localhost:5173"));
+		assertTrue(baseYaml.contains("http://127.0.0.1:5173"));
+		assertFalse(baseYaml.contains("FRONTEND_ORIGIN"));
+		assertTrue(devYaml.contains("http://localhost:5173"));
+		assertTrue(devYaml.contains("http://127.0.0.1:5173"));
+		assertFalse(devYaml.contains("FRONTEND_ORIGIN"));
 		assertTrue(baseYaml.contains("ADMIN_INITIAL_PASSWORD"));
 		assertTrue(baseYaml.contains("ADMIN_PASSWORD"));
 		assertTrue(devYaml.contains("ADMIN_INITIAL_PASSWORD"));
@@ -80,6 +84,54 @@ class ApplicationConfigurationProfileTest {
 		assertEquals("library-management-api", environment.getProperty("spring.application.name"));
 		assertEquals("1234", environment.getProperty("app.async.notification.delay-ms"));
 		assertEquals("42", environment.getProperty("app.cache.books.maximum-size"));
+	}
+
+	@Test
+	void corsOrigins_devKeepsLocalhostEvenWhenFrontendOriginIsSet() throws IOException {
+		StandardEnvironment environment = new StandardEnvironment();
+		environment.setActiveProfiles("dev");
+		addYaml(environment, new YamlPropertySourceLoader(), "application.yml");
+		addProfileYamlFirst(environment, new YamlPropertySourceLoader(), "application-dev.yml");
+		environment.getPropertySources().addFirst(new MapPropertySource(
+				"frontendOrigin",
+				Map.of("FRONTEND_ORIGIN", "https://library-management-web-4tu2-woad.vercel.app")
+		));
+
+		String origins = environment.resolvePlaceholders(
+				Objects.requireNonNull(environment.getProperty("app.cors.allowed-origins"))
+		);
+
+		assertTrue(origins.contains("http://localhost:5173"));
+		assertTrue(origins.contains("http://127.0.0.1:5173"));
+		assertFalse(origins.contains("vercel.app"));
+	}
+
+	@Test
+	void corsOrigins_prodUsesFrontendOrigin() throws IOException {
+		StandardEnvironment environment = new StandardEnvironment();
+		environment.setActiveProfiles("prod");
+		addYaml(environment, new YamlPropertySourceLoader(), "application.yml");
+		addProfileYamlFirst(environment, new YamlPropertySourceLoader(), "application-prod.yml");
+		environment.getPropertySources().addFirst(new MapPropertySource(
+				"frontendOrigin",
+				Map.of("FRONTEND_ORIGIN", "https://library-management-web-4tu2-woad.vercel.app")
+		));
+
+		String origins = environment.resolvePlaceholders(
+				Objects.requireNonNull(environment.getProperty("app.cors.allowed-origins"))
+		);
+
+		assertEquals("https://library-management-web-4tu2-woad.vercel.app", origins);
+	}
+
+	private static void addProfileYamlFirst(
+			StandardEnvironment environment,
+			YamlPropertySourceLoader loader,
+			String classpathLocation) throws IOException {
+		ClassPathResource resource = new ClassPathResource(classpathLocation);
+		loader.load(classpathLocation, resource).forEach(source ->
+				environment.getPropertySources().addFirst(source)
+		);
 	}
 
 	private static void addYaml(

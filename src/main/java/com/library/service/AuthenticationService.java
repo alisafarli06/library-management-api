@@ -6,6 +6,7 @@ import com.library.dto.LoginRequest;
 import com.library.dto.RefreshTokenRequest;
 import com.library.dto.RegisterRequest;
 import com.library.dto.UserDto;
+import com.library.entity.AccountStatus;
 import com.library.entity.Role;
 import com.library.entity.User;
 import com.library.exception.BadRequestException;
@@ -16,6 +17,7 @@ import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.CredentialsExpiredException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -85,6 +87,11 @@ public class AuthenticationService {
 			}
 
 			userDetailsService.loadUserByUsername(email);
+			User user = userRepository.findByEmail(email)
+					.orElseThrow(() -> new InsufficientAuthenticationException("Invalid refresh token"));
+			if (user.getStatus() == AccountStatus.BLOCKED) {
+				throw new DisabledException(AdminUserService.ACCOUNT_BLOCKED_MESSAGE);
+			}
 			return issueTokens(email, Role.valueOf(roleClaim));
 		} catch (ExpiredJwtException ex) {
 			throw new CredentialsExpiredException("Refresh token expired");

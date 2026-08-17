@@ -28,9 +28,9 @@ app:
       maximum-size: ${CACHE_BOOKS_MAXIMUM_SIZE:500}
       expire-after-write-minutes: ${CACHE_BOOKS_EXPIRE_AFTER_WRITE_MINUTES:10}
   admin:
-    email: ${ADMIN_EMAIL:admin@library.com}
-    full-name: ${ADMIN_FULL_NAME:Library Admin}
-    password: ${ADMIN_PASSWORD:CHANGE_ME_ADMIN_PASSWORD}
+    email: ${ADMIN_EMAIL:alisafarli@gmail.com}
+    full-name: ${ADMIN_FULL_NAME:Ali Safarli}
+    password: ${ADMIN_INITIAL_PASSWORD:${ADMIN_PASSWORD:CHANGE_ME_ADMIN_PASSWORD}}
 
 logging:
   level:

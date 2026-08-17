@@ -8,16 +8,16 @@ public class AdminUserProperties {
 	/**
 	 * Email used for the bootstrap ADMIN user created on first startup.
 	 */
-	private String email = "admin@library.com";
+	private String email = "alisafarli@gmail.com";
 
 	/**
 	 * Display name for the bootstrap ADMIN user.
 	 */
-	private String fullName = "Library Admin";
+	private String fullName = "Ali Safarli";
 
 	/**
-	 * Raw password for the bootstrap ADMIN user. Prefer {@code ADMIN_PASSWORD}.
-	 * Never log this value.
+	 * Raw password for the bootstrap ADMIN user. Prefer {@code ADMIN_INITIAL_PASSWORD}
+	 * or {@code ADMIN_PASSWORD}. Never log this value.
 	 */
 	private String password;
 

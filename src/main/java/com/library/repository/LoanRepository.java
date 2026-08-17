@@ -16,6 +16,8 @@ import java.util.Optional;
 
 public interface LoanRepository extends JpaRepository<Loan, Long>, JpaSpecificationExecutor<Loan> {
 
+	boolean existsByMember_Id(Long memberId);
+
 	boolean existsByMember_IdAndBook_IdAndReturnedAtIsNull(Long memberId, Long bookId);
 
 	boolean existsByBook_IdAndReturnedAtIsNull(Long bookId);

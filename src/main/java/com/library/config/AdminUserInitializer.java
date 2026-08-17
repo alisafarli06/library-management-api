@@ -40,16 +40,23 @@ public class AdminUserInitializer implements CommandLineRunner {
 			return;
 		}
 
-		User admin = userRepository.findByEmail(adminEmail).orElseGet(() -> {
-			User created = new User();
-			created.setFullName(adminUserProperties.getFullName());
-			created.setEmail(adminEmail);
-			created.setPassword(passwordEncoder.encode(adminUserProperties.getPassword()));
-			created.setRole(Role.ADMIN);
-			User saved = userRepository.save(created);
-			log.info("Created bootstrap ADMIN user {}", adminEmail);
-			return saved;
-		});
+		User admin = userRepository.findByEmail(adminEmail).orElseGet(() -> createBootstrapAdmin(adminEmail));
+		if (admin.getRole() != Role.ADMIN) {
+			admin.setRole(Role.ADMIN);
+			admin = userRepository.save(admin);
+			log.info("Promoted existing user {} to ADMIN", adminEmail);
+		}
 		memberService.ensureMemberForUser(admin);
+	}
+
+	private User createBootstrapAdmin(String adminEmail) {
+		User created = new User();
+		created.setFullName(adminUserProperties.getFullName());
+		created.setEmail(adminEmail);
+		created.setPassword(passwordEncoder.encode(adminUserProperties.getPassword()));
+		created.setRole(Role.ADMIN);
+		User saved = userRepository.save(created);
+		log.info("Created bootstrap ADMIN user {}", adminEmail);
+		return saved;
 	}
 }

@@ -83,14 +83,14 @@ src/main/java/com/library/
 ```powershell
 $env:SPRING_PROFILES_ACTIVE="dev"
 $env:DB_PASSWORD="your_password"
-$env:ADMIN_PASSWORD="CHANGE_ME_ADMIN_PASSWORD"
+$env:ADMIN_INITIAL_PASSWORD="CHANGE_ME_ADMIN_PASSWORD"
 ./gradlew bootRun
 ```
 
 ```bash
 export SPRING_PROFILES_ACTIVE=dev
 export DB_PASSWORD=your_password
-export ADMIN_PASSWORD=CHANGE_ME_ADMIN_PASSWORD
+export ADMIN_INITIAL_PASSWORD=CHANGE_ME_ADMIN_PASSWORD
 ./gradlew bootRun --args='--spring.profiles.active=dev'
 ```
 
@@ -104,7 +104,7 @@ export DB_URL=jdbc:postgresql://db-host:5432/library_db
 export DB_USERNAME=library_app
 export DB_PASSWORD=...
 export JWT_SECRET=...
-export ADMIN_PASSWORD=...
+export ADMIN_INITIAL_PASSWORD=...
 export FILE_STORAGE_DIRECTORY=/var/lib/library/uploads
 ./gradlew bootRun --args='--spring.profiles.active=prod'
 ```
@@ -133,9 +133,11 @@ Configuration uses environment variables. Values in the active profile / `applic
 | `ASYNC_EXECUTOR_MAX_POOL_SIZE` | Async pool max size | `4` | `4` |
 | `ASYNC_EXECUTOR_QUEUE_CAPACITY` | Async queue capacity | `100` | `100` |
 | `ASYNC_NOTIFICATION_DELAY_MS` | Simulated email delay (ms) | `500` | `200` |
-| `ADMIN_EMAIL` | Bootstrap ADMIN user email | `admin@library.com` | `admin@library.com` |
-| `ADMIN_FULL_NAME` | Bootstrap ADMIN display name | `Library Admin` | `Library Admin` |
-| `ADMIN_PASSWORD` | Bootstrap ADMIN password (created only if that email does not exist) | `CHANGE_ME_ADMIN_PASSWORD` | **required** |
+| `ADMIN_EMAIL` | Bootstrap ADMIN user email | `alisafarli@gmail.com` | `alisafarli@gmail.com` |
+| `ADMIN_FULL_NAME` | Bootstrap ADMIN display name | `Ali Safarli` | `Ali Safarli` |
+| `ADMIN_INITIAL_PASSWORD` | Bootstrap ADMIN password (used only when that email does not exist) | falls back to `ADMIN_PASSWORD` | **required** (or `ADMIN_PASSWORD`) |
+| `ADMIN_PASSWORD` | Fallback bootstrap ADMIN password | `CHANGE_ME_ADMIN_PASSWORD` | **required** if `ADMIN_INITIAL_PASSWORD` is unset |
+| `CORS_ALLOWED_ORIGINS` | Comma-separated browser origins allowed to call the API | empty | e.g. `https://your-app.vercel.app` |
 
 ### Example (Windows PowerShell)
 
@@ -165,12 +167,27 @@ Never commit real secrets. Prefer environment variables (or a local untracked ov
 
 ## Bootstrap ADMIN user
 
-On first startup the application creates an ADMIN user if that email is not already in the database. Credentials come from configuration, not from hardcoded values in Java.
+On first startup the application creates an ADMIN user if that email is not already in the database. Credentials come from configuration, not from hardcoded values in Java. The password is stored as a BCrypt hash. If the email already exists, the account is not duplicated and the stored password is not overwritten; a USER with that email is promoted to ADMIN.
 
-- **Local / `dev`:** email `admin@library.com`, password `CHANGE_ME_ADMIN_PASSWORD` unless you set `ADMIN_PASSWORD`.
-- **Production:** set `ADMIN_PASSWORD` (required). Optionally override `ADMIN_EMAIL` and `ADMIN_FULL_NAME`.
+- **Local / `dev`:** email `alisafarli@gmail.com`, password `CHANGE_ME_ADMIN_PASSWORD` unless you set `ADMIN_INITIAL_PASSWORD` or `ADMIN_PASSWORD`.
+- **Production (Render):** set `ADMIN_INITIAL_PASSWORD` (or `ADMIN_PASSWORD`). Optionally override `ADMIN_EMAIL` and `ADMIN_FULL_NAME`. Never commit the real password.
 
-Mentors can log in via `POST /api/auth/login` with that email and password, then use the access token in Swagger **Authorize**. Change the password in any shared or production environment.
+Mentors can log in via `POST /api/auth/login` with that email and password, then use the access token in Swagger **Authorize**. Change the password after first login in any shared or production environment.
+
+### Render environment variables
+
+Set these on the API service (not on Vercel):
+
+| Variable | Required |
+|----------|----------|
+| `SPRING_PROFILES_ACTIVE=prod` | yes |
+| `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` | yes |
+| `JWT_SECRET` | yes |
+| `ADMIN_INITIAL_PASSWORD` | yes (or `ADMIN_PASSWORD`) |
+| `FILE_STORAGE_DIRECTORY` | yes |
+| `CORS_ALLOWED_ORIGINS` | yes for the Vercel frontend |
+
+Do not put `ADMIN_INITIAL_PASSWORD` in frontend / Vercel environment variables or in GitHub.
 
 ## Database Setup
 
@@ -204,7 +221,7 @@ Do **not** run the migration SQL manually when starting the app (`./gradlew boot
 Shared settings live in `application.yml`. Profile-specific overrides:
 
 - `application-dev.yml` — local PostgreSQL defaults, DEBUG logging for `com.library`; `ddl-auto=validate`
-- `application-prod.yml` — requires `DB_*`, `JWT_SECRET`, `FILE_STORAGE_DIRECTORY`, and `ADMIN_PASSWORD` from the environment; `ddl-auto=validate`
+- `application-prod.yml` — requires `DB_*`, `JWT_SECRET`, `FILE_STORAGE_DIRECTORY`, and `ADMIN_INITIAL_PASSWORD` (or `ADMIN_PASSWORD`) from the environment; `ddl-auto=validate`
 
 ### Configuration example
 
@@ -315,6 +332,10 @@ A Postman collection is **not** required for this submission because Swagger/Ope
 | POST | `/api/books` | Create book | 201 |
 | PUT | `/api/books/{id}` | Update book | 200 |
 | DELETE | `/api/books/{id}` | Delete book | 204 |
+| GET | `/api/admin/users` | List users (ADMIN, paginated; optional `q`, `role`) | 200 |
+| GET | `/api/admin/users/{id}` | Get user by ID (ADMIN) | 200 |
+| PATCH | `/api/admin/users/{id}/role` | Change user role (ADMIN) | 200 |
+| DELETE | `/api/admin/users/{id}` | Delete user (ADMIN) | 204 |
 | GET | `/api/members` | List members (paginated) | 200 |
 | GET | `/api/members/{id}` | Get member by ID | 200 |
 | POST | `/api/members` | Create member | 201 |

@@ -60,10 +60,10 @@ app:
     notification:
       delay-ms: ${ASYNC_NOTIFICATION_DELAY_MS:500}
   admin:
-    email: ${ADMIN_EMAIL:admin@library.com}
-    full-name: ${ADMIN_FULL_NAME:Library Admin}
-    # Dev placeholder only. Production must set ADMIN_PASSWORD (no default).
-    password: ${ADMIN_PASSWORD:CHANGE_ME_ADMIN_PASSWORD}
+    email: ${ADMIN_EMAIL:alisafarli@gmail.com}
+    full-name: ${ADMIN_FULL_NAME:Ali Safarli}
+    # Dev placeholder only. Production must set ADMIN_INITIAL_PASSWORD or ADMIN_PASSWORD (no default).
+    password: ${ADMIN_INITIAL_PASSWORD:${ADMIN_PASSWORD:CHANGE_ME_ADMIN_PASSWORD}}
 
 # -----------------------------------------------------------------------------
 # Required environment variables for production (SPRING_PROFILES_ACTIVE=prod):
@@ -72,7 +72,7 @@ app:
 #   DB_PASSWORD
 #   JWT_SECRET
 #   FILE_STORAGE_DIRECTORY
-#   ADMIN_PASSWORD
+#   ADMIN_INITIAL_PASSWORD (or ADMIN_PASSWORD)
 #
 # Flyway manages schema (classpath:db/migration). Hibernate ddl-auto is validate.
 # -----------------------------------------------------------------------------

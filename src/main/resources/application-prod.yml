@@ -35,9 +35,9 @@ app:
     notification:
       delay-ms: ${ASYNC_NOTIFICATION_DELAY_MS:200}
   admin:
-    email: ${ADMIN_EMAIL:admin@library.com}
-    full-name: ${ADMIN_FULL_NAME:Library Admin}
-    password: ${ADMIN_PASSWORD}
+    email: ${ADMIN_EMAIL:alisafarli@gmail.com}
+    full-name: ${ADMIN_FULL_NAME:Ali Safarli}
+    password: ${ADMIN_INITIAL_PASSWORD:${ADMIN_PASSWORD}}
 
 logging:
   level:

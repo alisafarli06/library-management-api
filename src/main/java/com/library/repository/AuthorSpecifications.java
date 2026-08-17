@@ -21,4 +21,19 @@ public final class AuthorSpecifications {
 			return builder.like(builder.lower(root.get("name")), pattern);
 		};
 	}
+
+	public static Specification<Author> hasBooks(Boolean hasBooks) {
+		return (root, query, builder) -> {
+			if (hasBooks == null) {
+				return null;
+			}
+			if (hasBooks) {
+				return builder.greaterThan(root.get("bookCount"), 0L);
+			}
+			return builder.or(
+					builder.equal(root.get("bookCount"), 0L),
+					builder.isNull(root.get("bookCount"))
+			);
+		};
+	}
 }

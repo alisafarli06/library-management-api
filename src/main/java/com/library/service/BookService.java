@@ -54,10 +54,14 @@ public class BookService {
 	}
 
 	public Page<BookDto> search(BookSearchRequest request, Pageable pageable) {
+		Specification<Book> authorSpecification = request.getAuthorId() != null
+				? BookSpecifications.authorIdEquals(request.getAuthorId())
+				: BookSpecifications.authorNameContains(request.getAuthor());
+
 		Specification<Book> specification = Specification
 				.allOf(
 						BookSpecifications.titleContains(request.getTitle()),
-						BookSpecifications.authorNameContains(request.getAuthor()),
+						authorSpecification,
 						BookSpecifications.publishedAfter(request.getPublishedAfter()),
 						BookSpecifications.publishedYearFrom(request.getYearFrom()),
 						BookSpecifications.publishedYearTo(request.getYearTo()),

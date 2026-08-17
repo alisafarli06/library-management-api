@@ -30,6 +30,15 @@ public final class BookSpecifications {
 		};
 	}
 
+	public static Specification<Book> authorIdEquals(Long authorId) {
+		return (root, query, builder) -> {
+			if (authorId == null) {
+				return null;
+			}
+			return builder.equal(root.get("author").get("id"), authorId);
+		};
+	}
+
 	public static Specification<Book> publishedAfter(Integer year) {
 		return (root, query, builder) -> {
 			if (year == null) {

@@ -73,8 +73,9 @@ public class AuthorController {
 					schema = @Schema(implementation = AuthorDto.class)))
 	public Page<AuthorDto> search(
 			@RequestParam(required = false) String q,
+			@RequestParam(required = false) Boolean hasBooks,
 			@ParameterObject Pageable pageable) {
-		return authorService.search(q, pageable);
+		return authorService.search(q, hasBooks, pageable);
 	}
 
 	@GetMapping("/{id}")

@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
 @Schema(description = "Optional filters for book search (all fields are optional)")
@@ -16,6 +17,10 @@ public class BookSearchRequest {
 	@Size(max = 255)
 	@Schema(description = "Case-insensitive partial match on author name", example = "Austen")
 	private String author;
+
+	@Positive
+	@Schema(description = "Exact match on author identifier (takes precedence over author name)", example = "1")
+	private Long authorId;
 
 	@Min(1000)
 	@Max(9999)
@@ -52,6 +57,14 @@ public class BookSearchRequest {
 
 	public void setAuthor(String author) {
 		this.author = author;
+	}
+
+	public Long getAuthorId() {
+		return authorId;
+	}
+
+	public void setAuthorId(Long authorId) {
+		this.authorId = authorId;
 	}
 
 	public Integer getPublishedAfter() {

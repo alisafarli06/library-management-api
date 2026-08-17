@@ -68,7 +68,7 @@ class AuthorServiceTest {
 				.thenReturn(new PageImpl<>(List.of(author)));
 
 		// Act
-		Page<AuthorDto> result = authorService.search("  ali  ", pageable);
+		Page<AuthorDto> result = authorService.search("  ali  ", null, pageable);
 
 		// Assert
 		assertEquals(1, result.getTotalElements());

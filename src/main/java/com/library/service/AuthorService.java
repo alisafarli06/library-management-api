@@ -10,6 +10,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.util.StringUtils;
 
 @Service
@@ -25,12 +26,16 @@ public class AuthorService {
 	}
 
 	public Page<AuthorDto> findAll(Pageable pageable) {
-		return search(null, pageable);
+		return search(null, null, pageable);
 	}
 
-	public Page<AuthorDto> search(String q, Pageable pageable) {
+	public Page<AuthorDto> search(String q, Boolean hasBooks, Pageable pageable) {
 		String term = StringUtils.hasText(q) ? q.trim() : null;
-		return authorRepository.findAll(AuthorSpecifications.nameContains(term), pageable).map(authorMapper::toDto);
+		Specification<Author> specification = Specification.allOf(
+				AuthorSpecifications.nameContains(term),
+				AuthorSpecifications.hasBooks(hasBooks)
+		);
+		return authorRepository.findAll(specification, pageable).map(authorMapper::toDto);
 	}
 
 	public AuthorDto findById(Long id) {

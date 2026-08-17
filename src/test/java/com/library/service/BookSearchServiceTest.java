@@ -82,6 +82,17 @@ class BookSearchServiceTest {
 	}
 
 	@Test
+	void search_byAuthorId_returnsOnlyThatAuthorsBooks() {
+		BookSearchRequest request = new BookSearchRequest();
+		request.setAuthorId(cleanCode.getAuthor().getId());
+
+		Page<BookDto> result = bookService.search(request, PageRequest.of(0, 10));
+
+		assertEquals(2, result.getTotalElements());
+		assertTrue(result.getContent().stream().allMatch(book -> book.getAuthorId().equals(cleanCode.getAuthor().getId())));
+	}
+
+	@Test
 	void search_withNoFilters_returnsPaginatedBooks() {
 		BookSearchRequest request = new BookSearchRequest();
 

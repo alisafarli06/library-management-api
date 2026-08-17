@@ -1,441 +1,325 @@
 # Library Management API
 
-REST API for managing authors, books, and library members. Built with Spring Boot using a layered architecture.
+REST API for a small library: catalogue, members, loans, files, and JWT-secured admin account management. Built with Spring Boot 4, Java 21, PostgreSQL, and Flyway.
 
-## Features
+Companion UI: [library-management-web](https://github.com/alisafarli06/library-management-web).
 
-- Full CRUD REST endpoints for Author, Book, and Member
-- ADMIN user management: list accounts, change roles, block/unblock, and delete when safe
-- DTO-based API responses (entities are never exposed)
-- Jakarta Bean Validation on request payloads
-- Centralized exception handling with consistent JSON error responses
-- Pagination and sorting on list endpoints
-- OpenAPI / Swagger UI documentation
-- Asynchronous welcome-email simulation on user registration (`@Async`)
-- Caffeine-backed book-by-id caching with eviction on successful update/delete
-- Externalized YAML configuration with `dev` / `prod` profiles
-- Flyway database migrations
-- Unit tests for the service layer and exception handler
+## Live Demo
 
-## Technologies Used
+| Layer | URL |
+|-------|-----|
+| Frontend | [library-management-web-4tu2-woad.vercel.app](https://library-management-web-4tu2-woad.vercel.app) |
+| API | [library-management-api-8wiv.onrender.com](https://library-management-api-8wiv.onrender.com) |
+| Swagger UI | [library-management-api-8wiv.onrender.com/swagger-ui/index.html](https://library-management-api-8wiv.onrender.com/swagger-ui/index.html) |
+| OpenAPI JSON | [library-management-api-8wiv.onrender.com/v3/api-docs](https://library-management-api-8wiv.onrender.com/v3/api-docs) |
 
-- Java 21
-- Spring Boot 4.1.0
-- Spring Web
-- Spring Data JPA
-- PostgreSQL
-- Flyway
-- Gradle
-- springdoc-openapi (Swagger UI)
-- JUnit 5 & Mockito
+The Render service may sleep on the free tier; the first request after idle can take a while.
 
-## Project Structure
+## Key Features
+
+- JWT access + refresh tokens (register, login, refresh, change password)
+- Role-based access: `USER` and `ADMIN`
+- Admin account management: list users, promote/demote, block/unblock, delete when safe
+- Author, book, and member CRUD with search, pagination, and sorting
+- Borrow/return (self-service for the signed-in user; admin can borrow on behalf of a member)
+- Loan history and borrowing analytics (admin)
+- Book cover (JPEG/PNG) and preface (PDF) attachments
+- Jakarta Bean Validation and a single JSON error shape via `GlobalExceptionHandler`
+- Flyway migrations; Hibernate `ddl-auto=validate`
+- Caffeine cache for book-by-id; scheduled cleanup of orphaned upload files
+- Simulated welcome email on registration (`@Async`)
+
+## Technology Stack
+
+| Area | Choice |
+|------|--------|
+| Language / runtime | Java 21 |
+| Framework | Spring Boot 4.1.0 (Web MVC, Security, Data JPA, Validation, Cache) |
+| Database | PostgreSQL |
+| Migrations | Flyway |
+| Auth | JWT (`jjwt` 0.12.6), BCrypt |
+| API docs | springdoc-openapi 3.0.3 (Swagger UI) |
+| Cache | Caffeine |
+| Build | Gradle Wrapper |
+| Deploy | Docker on Render |
+
+## Architecture
+
+Layered Spring Boot API. Controllers never return JPA entities.
 
 ```
-src/main/java/com/library/
-├── config/                         # Application configuration and properties
-│   ├── openapi/                    # Reusable OpenAPI response annotations
-│   │   ├── RoleRestrictedResponses.java
-│   │   └── StandardAuthenticatedResponses.java
-│   ├── AdminUserInitializer.java
-│   ├── AdminUserProperties.java
-│   ├── AsyncConfig.java
-│   ├── CacheConfig.java
-│   ├── FileStorageProperties.java
-│   ├── OpenApiConfig.java
-│   └── SchedulingConfig.java
-├── controller/                     # REST controllers
-├── dto/                            # Request/response DTOs
-├── entity/                         # JPA entities
-├── exception/                      # Custom exceptions and global handler
-├── mapper/                         # Entity ↔ DTO mappers
-├── repository/                     # Spring Data JPA repositories and Specifications
-├── scheduler/                      # Scheduled jobs (file cleanup)
-├── security/                       # JWT and Spring Security
-├── service/                        # Business logic
-│   └── storage/                    # File storage abstraction and local implementation
-└── LibraryManagementApiApplication.java
+Browser (Vercel)  →  REST / JWT  →  Spring Boot (Render)
+                                        ↓
+                                   PostgreSQL
+                                   Disk uploads (`FILE_STORAGE_DIRECTORY`)
 ```
 
-## Prerequisites
+| Layer | Package | Role |
+|-------|---------|------|
+| HTTP | `controller` | Routes, `@Valid`, OpenAPI annotations |
+| Security | `security` | Filter chain, JWT parse/issue, 401/403 JSON |
+| Domain | `service` | Business rules, transactions, cache eviction |
+| Mapping | `mapper` | Entity ↔ DTO |
+| Persistence | `repository`, `entity` | Spring Data JPA + Specifications |
+| Config | `config` | CORS, OpenAPI, cache, async, bootstrap admin, file storage |
 
-- JDK 21+
-- PostgreSQL
-- Gradle Wrapper (included — no global Gradle install required)
+The frontend stores tokens in `localStorage` and sends `Authorization: Bearer <accessToken>`. CORS allows configured browser origins only (`allowCredentials` is false).
 
-## Installation Steps
+## Authentication and Authorization
 
-1. Clone the repository: `git clone https://github.com/alisafarli06/library-management-api.git`
-2. Review YAML configuration under `src/main/resources/` (`application.yml`, `application-dev.yml`, `application-prod.yml`).
-3. Optionally open `src/main/resources/application.yml.example` for a full environment-variable / placeholder reference.
-4. Set environment variables for your local database and JWT settings (see below). The default profile is `dev`.
-5. Create the PostgreSQL database `library_db` (tables are created by Flyway on startup; do not create application tables by hand).
-6. Build and run the application.
+1. `POST /api/auth/register` or `POST /api/auth/login` returns `accessToken` and `refreshToken`.
+2. Protected routes require `Authorization: Bearer <accessToken>`.
+3. `POST /api/auth/refresh` issues a new pair. Blocked accounts cannot log in, refresh, or use an existing JWT (403).
+4. `POST /api/auth/change-password` uses the JWT subject (email), not a user id in the body.
 
-## Profiles
+Registration always creates `USER`. An `ADMIN` is bootstrapped on startup from `ADMIN_EMAIL` / `ADMIN_INITIAL_PASSWORD` if that email is missing (existing users with that email are promoted to ADMIN; the stored password is not overwritten).
 
-| Profile | Purpose | Activation |
-|---------|---------|------------|
-| `dev` | Local development (safe defaults) | Default, or `SPRING_PROFILES_ACTIVE=dev` |
-| `prod` | Production deployment (secrets required via env) | `SPRING_PROFILES_ACTIVE=prod` |
+| Path | Who |
+|------|-----|
+| `/api/auth/register`, `/login`, `/refresh` | Public |
+| `/swagger-ui/**`, `/v3/api-docs/**` | Public |
+| `GET /api/books/**`, `GET /api/authors/**`, `GET /api/files/**` | Authenticated |
+| `/api/user/**` | `USER` or `ADMIN` |
+| Member mutations, catalogue mutations, `POST /api/files` | `ADMIN` |
+| `/api/admin/**`, `/api/loans/**` | `ADMIN` |
 
-### Development
+Admin user management (`/api/admin/users`) operates on `User`, not `Member`. Role and `ACTIVE` / `BLOCKED` live on `User`. Guards:
 
-```powershell
-$env:SPRING_PROFILES_ACTIVE="dev"
-$env:DB_PASSWORD="your_password"
-$env:ADMIN_INITIAL_PASSWORD="CHANGE_ME_ADMIN_PASSWORD"
-./gradlew bootRun
+- Cannot change, block, or delete your own account (400)
+- Cannot demote, block, or delete the last **ACTIVE** admin (409)
+- Delete is refused (409) if the linked member still has loan history — block instead
+
+The web app exposes these actions on the **Members** page for members that have a linked login.
+
+## Swagger / OpenAPI
+
+Interactive API docs are provided by springdoc-openapi (Swagger UI). There is no Postman collection in this repository. Swagger UI and the OpenAPI document are **public** (no JWT to open them). Protected endpoints still require a JWT to execute.
+
+| | Local | Production |
+|--|-------|------------|
+| Swagger UI | [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html) | [https://library-management-api-8wiv.onrender.com/swagger-ui/index.html](https://library-management-api-8wiv.onrender.com/swagger-ui/index.html) |
+| OpenAPI JSON | [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs) | [https://library-management-api-8wiv.onrender.com/v3/api-docs](https://library-management-api-8wiv.onrender.com/v3/api-docs) |
+
+**Local:** start the API (`./gradlew bootRun`), then open Swagger UI at `http://localhost:8080/swagger-ui/index.html`.
+
+**Production:** open the Render Swagger UI URL above. The service may take a moment to wake on the free tier.
+
+To call protected operations from Swagger:
+
+1. `POST /api/auth/login` or `POST /api/auth/register`.
+2. Copy `accessToken` from the response.
+3. Click **Authorize**, enter `Bearer <accessToken>`, and confirm.
+
+### Endpoint map
+
+List/search endpoints accept Spring Data `page`, `size`, and `sort` (example: `sort=title,asc`).
+
+| Method | Path | Notes |
+|--------|------|--------|
+| POST | `/api/auth/register` | Public; role `USER` |
+| POST | `/api/auth/login` | Public |
+| POST | `/api/auth/refresh` | Public |
+| POST | `/api/auth/change-password` | JWT |
+| GET/PATCH | `/api/user/profile` | Own profile |
+| POST | `/api/user/books/{bookId}/borrow` | Self borrow |
+| POST | `/api/user/books/{bookId}/return` | Self return |
+| GET | `/api/user/loans` | Own loans |
+| GET | `/api/authors`, `/api/authors/search` | `q`, `hasBooks` |
+| GET/POST/PUT/DELETE | `/api/authors`, `/api/authors/{id}` | Write: ADMIN |
+| GET | `/api/books`, `/api/books/search` | title, author, authorId, year, available |
+| POST/PUT/DELETE | `/api/books`, `/api/books/{id}` | ADMIN |
+| POST/DELETE | `/api/books/{id}/cover`, `/preface` | ADMIN; cover image, preface PDF |
+| GET | `/api/members`, `/api/members/search` | ADMIN; `q` on name/email |
+| POST/PUT/DELETE | `/api/members`, `/api/members/{id}` | ADMIN |
+| POST | `/api/members/{memberId}/books/{bookId}/borrow` | ADMIN |
+| POST | `/api/members/{memberId}/books/{bookId}/return` | ADMIN |
+| GET | `/api/loans`, `/api/loans/search` | ADMIN; `q`, `status` |
+| GET | `/api/admin/users` | ADMIN; `q`, `role`, `status` |
+| PATCH | `/api/admin/users/{id}/role` | `{ "role": "USER" \| "ADMIN" }` |
+| PATCH | `/api/admin/users/{id}/status` | `{ "blocked": true \| false }` |
+| DELETE | `/api/admin/users/{id}` | ADMIN |
+| GET | `/api/admin/analytics/summary` | ADMIN |
+| GET | `/api/admin/analytics/books\|authors\|members` | Ranked borrow counts |
+| POST | `/api/files` | ADMIN; JPEG, PNG, PDF; default max 10 MB |
+| GET | `/api/files/{id}` | Authenticated download |
+
+## Database
+
+Flyway owns the schema (`src/main/resources/db/migration`, currently V1–V12). Do not create application tables by hand.
+
 ```
+User 1:1? Member  *──* Book *──1 Author
+              │         │
+              └─ Loan ──┘
+Book ──? FileMetadata (cover, preface)
+```
+
+| Entity | Table | Notes |
+|--------|-------|--------|
+| `User` | `users` | Email, BCrypt password, `Role`, `AccountStatus` |
+| `Member` | `members` | Library patron; optional `user_id` |
+| `Author` / `Book` | `authors` / `books` | Book has `available`, ISBN, optional files |
+| `Loan` | `loans` | Borrow history (`returned_at` null = active) |
+| `FileMetadata` | `file_metadata` | Bytes on disk; metadata in PostgreSQL |
+
+`role` and blocked status are **not** columns on `Member`. Member list DTOs copy them from the linked `User` when present.
+
+## Installation / Setup
+
+**Needs:** JDK 21, PostgreSQL, this repo’s Gradle wrapper.
+
+1. Clone the repository:
 
 ```bash
-export SPRING_PROFILES_ACTIVE=dev
-export DB_PASSWORD=your_password
-export ADMIN_INITIAL_PASSWORD=CHANGE_ME_ADMIN_PASSWORD
-./gradlew bootRun --args='--spring.profiles.active=dev'
+git clone https://github.com/alisafarli06/library-management-api.git
+cd library-management-api
 ```
 
-### Production
-
-Provide all required secrets via environment variables (no passwords in YAML):
-
-```bash
-export SPRING_PROFILES_ACTIVE=prod
-export DB_URL=jdbc:postgresql://db-host:5432/library_db
-export DB_USERNAME=library_app
-export DB_PASSWORD=...
-export JWT_SECRET=...
-export ADMIN_INITIAL_PASSWORD=...
-export FILE_STORAGE_DIRECTORY=/var/lib/library/uploads
-./gradlew bootRun --args='--spring.profiles.active=prod'
-```
-
-## Environment Variables
-
-Configuration uses environment variables. Values in the active profile / `application.yml` supply safe defaults for development. Environment variables always override YAML.
-
-| Variable | Purpose | Dev default | Prod |
-|----------|---------|-------------|------|
-| `SPRING_PROFILES_ACTIVE` | Active Spring profile | `dev` | set to `prod` |
-| `DB_URL` | JDBC URL | `jdbc:postgresql://localhost:5432/library_db` | **required** |
-| `DB_USERNAME` | Database username | `postgres` | **required** |
-| `DB_PASSWORD` | Database password | `CHANGE_ME` | **required** |
-| `JWT_SECRET` | HMAC signing secret (min. 32 characters) | placeholder | **required** |
-| `JWT_ACCESS_EXPIRATION_MS` | Access token lifetime (ms) | `900000` | `900000` |
-| `JWT_REFRESH_EXPIRATION_MS` | Refresh token lifetime (ms) | `604800000` | `604800000` |
-| `FILE_STORAGE_DIRECTORY` | Upload storage directory | `uploads` | **required** |
-| `FILE_MAX_SIZE` | Max upload size in bytes | `10485760` | `10485760` |
-| `FILE_ALLOWED_CONTENT_TYPES` | MIME allowlist | `image/jpeg,image/png,application/pdf` | same |
-| `FILE_CLEANUP_ENABLED` | Orphaned-file cleanup | `true` | `true` |
-| `FILE_CLEANUP_CRON` | Cleanup cron | `0 0 3 * * *` | same |
-| `CACHE_BOOKS_MAXIMUM_SIZE` | Book cache max entries | `500` | `500` |
-| `CACHE_BOOKS_EXPIRE_AFTER_WRITE_MINUTES` | Book cache TTL (minutes) | `10` | `10` |
-| `ASYNC_EXECUTOR_CORE_POOL_SIZE` | Async pool core size | `2` | `2` |
-| `ASYNC_EXECUTOR_MAX_POOL_SIZE` | Async pool max size | `4` | `4` |
-| `ASYNC_EXECUTOR_QUEUE_CAPACITY` | Async queue capacity | `100` | `100` |
-| `ASYNC_NOTIFICATION_DELAY_MS` | Simulated email delay (ms) | `500` | `200` |
-| `ADMIN_EMAIL` | Bootstrap ADMIN user email | `alisafarli@gmail.com` | `alisafarli@gmail.com` |
-| `ADMIN_FULL_NAME` | Bootstrap ADMIN display name | `Ali Safarli` | `Ali Safarli` |
-| `ADMIN_INITIAL_PASSWORD` | Bootstrap ADMIN password (used only when that email does not exist) | falls back to `ADMIN_PASSWORD` | **required** (or `ADMIN_PASSWORD`) |
-| `ADMIN_PASSWORD` | Fallback bootstrap ADMIN password | `CHANGE_ME_ADMIN_PASSWORD` | **required** if `ADMIN_INITIAL_PASSWORD` is unset |
-| `FRONTEND_ORIGIN` | Browser origin of the deployed frontend (prod CORS) | unused in `dev` (localhost Vite origins) | **required** (Vercel URL, no trailing slash) |
-| `CORS_ALLOWED_ORIGINS` | Optional comma-separated CORS origins | `http://localhost:5173`, `http://127.0.0.1:5173`, `http://localhost:4173` | optional fallback if `FRONTEND_ORIGIN` is unset |
-
-### Example (Windows PowerShell)
-
-```powershell
-$env:SPRING_PROFILES_ACTIVE="dev"
-$env:DB_URL="jdbc:postgresql://localhost:5432/library_db"
-$env:DB_USERNAME="postgres"
-$env:DB_PASSWORD="your_password"
-$env:JWT_SECRET="CHANGE_ME_TO_A_SECURE_SECRET_KEY_AT_LEAST_32_CHARS"
-$env:JWT_ACCESS_EXPIRATION_MS="900000"
-$env:JWT_REFRESH_EXPIRATION_MS="604800000"
-```
-
-### Example (Linux / macOS)
-
-```bash
-export SPRING_PROFILES_ACTIVE=dev
-export DB_URL=jdbc:postgresql://localhost:5432/library_db
-export DB_USERNAME=postgres
-export DB_PASSWORD=your_password
-export JWT_SECRET=CHANGE_ME_TO_A_SECURE_SECRET_KEY_AT_LEAST_32_CHARS
-export JWT_ACCESS_EXPIRATION_MS=900000
-export JWT_REFRESH_EXPIRATION_MS=604800000
-```
-
-Never commit real secrets. Prefer environment variables (or a local untracked override) over putting production passwords in the repo.
-
-## Bootstrap ADMIN user
-
-On first startup the application creates an ADMIN user if that email is not already in the database. Credentials come from configuration, not from hardcoded values in Java. The password is stored as a BCrypt hash. If the email already exists, the account is not duplicated and the stored password is not overwritten; a USER with that email is promoted to ADMIN.
-
-- **Local / `dev`:** email `alisafarli@gmail.com`, password `CHANGE_ME_ADMIN_PASSWORD` unless you set `ADMIN_INITIAL_PASSWORD` or `ADMIN_PASSWORD`.
-- **Production (Render):** set `ADMIN_INITIAL_PASSWORD` (or `ADMIN_PASSWORD`). Optionally override `ADMIN_EMAIL` and `ADMIN_FULL_NAME`. Never commit the real password.
-
-Mentors can log in via `POST /api/auth/login` with that email and password, then use the access token in Swagger **Authorize**. Change the password after first login in any shared or production environment.
-
-### Render environment variables
-
-Set these on the API service (not on Vercel):
-
-| Variable | Required |
-|----------|----------|
-| `SPRING_PROFILES_ACTIVE=prod` | yes |
-| `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` | yes |
-| `JWT_SECRET` | yes |
-| `ADMIN_INITIAL_PASSWORD` | yes (or `ADMIN_PASSWORD`) |
-| `FILE_STORAGE_DIRECTORY` | yes |
-| `FRONTEND_ORIGIN` | yes — Vercel origin, no trailing slash |
-
-Do not put `ADMIN_INITIAL_PASSWORD` in frontend / Vercel environment variables or in GitHub.
-
-## Database Setup
-
-Create a PostgreSQL database named `library_db`:
+2. Create the database (Flyway creates tables on startup; do not create application tables by hand):
 
 ```sql
 CREATE DATABASE library_db;
 ```
 
-Default connection settings assume:
+3. Set environment variables (see [Configuration](#configuration)). Production secrets must not be committed.
 
-- Host: `localhost`
-- Port: `5432`
-- Database: `library_db`
-- Username: `postgres`
-
-Do **not** create application tables (`authors`, `books`, `members`, and so on) by hand. Flyway creates and updates them when the application starts.
-
-## Database / Flyway
-
-Flyway is the schema source of truth. Hibernate uses `spring.jpa.hibernate.ddl-auto=validate` in all profiles (it does not create or alter tables).
-
-- **Fresh empty `library_db`:** on startup Flyway runs `V1__init_library_schema.sql` and `V2__add_books_author_id_index.sql` and creates the current tables, keys, foreign keys (including `books.available`), and the `books.author_id` index.
-- **Existing non-empty databases:** `spring.flyway.baseline-on-migrate=true` with `baseline-version=0` records a baseline, then still runs V1. V1 is idempotent (`CREATE TABLE IF NOT EXISTS` and `ADD COLUMN IF NOT EXISTS`), so existing data is kept.
-- **`books.available`:** included in the V1 `CREATE TABLE`. If Hibernate previously created `books` without that column, V1 adds it with `ALTER TABLE books ADD COLUMN IF NOT EXISTS available BOOLEAN NOT NULL DEFAULT TRUE`.
-
-Do **not** run the migration SQL manually when starting the app (`./gradlew bootRun` applies Flyway). Do not drop or recreate tables to “fix” schema.
-
-## Application Configuration (YAML)
-
-Shared settings live in `application.yml`. Profile-specific overrides:
-
-- `application-dev.yml` — local PostgreSQL defaults, DEBUG logging for `com.library`; `ddl-auto=validate`
-- `application-prod.yml` — requires `DB_*`, `JWT_SECRET`, `FILE_STORAGE_DIRECTORY`, and `ADMIN_INITIAL_PASSWORD` (or `ADMIN_PASSWORD`) from the environment; `ddl-auto=validate`
-
-### Configuration example
-
-See [`src/main/resources/application.yml.example`](src/main/resources/application.yml.example) for a full YAML-shaped example with environment-variable placeholders (`CHANGE_ME`, `${DB_PASSWORD:CHANGE_ME}`, etc.).
-
-That file is documentation only — it is safe to commit because it contains **no real credentials**. Prefer setting values via environment variables (or an untracked `application-local.yml`, which is gitignored).
-
-## How to Run the Project
+4. Run the API:
 
 ```bash
 ./gradlew bootRun
 ```
 
-On Windows:
+Windows:
 
 ```powershell
 .\gradlew.bat bootRun
 ```
 
-Or with an explicit profile:
+The API listens on http://localhost:8080. Start the [web app](https://github.com/alisafarli06/library-management-web) separately (`npm run dev` on port 5173). Dev CORS already allows that origin.
 
-```bash
-./gradlew bootRun --args='--spring.profiles.active=dev'
+## Configuration
+
+Live files: `application.yml` (shared), `application-dev.yml` (local), `application-prod.yml` (Render). A full placeholder copy is in [`application.yml.example`](src/main/resources/application.yml.example). Prefer environment variables over committing secrets. Production has **no** password or JWT defaults.
+
+### `application.yml` example (placeholders only)
+
+```yaml
+spring:
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/library_db}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:YOUR_SECRET}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:YOUR_SECRET_AT_LEAST_32_CHARACTERS}
+    access-expiration-ms: ${JWT_ACCESS_EXPIRATION_MS:900000}
+    refresh-expiration-ms: ${JWT_REFRESH_EXPIRATION_MS:604800000}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173}
+  admin:
+    email: ${ADMIN_EMAIL:alisafarli@gmail.com}
+    full-name: ${ADMIN_FULL_NAME:Ali Safarli}
+    password: ${ADMIN_INITIAL_PASSWORD:${ADMIN_PASSWORD:YOUR_SECRET}}
+  file:
+    storage-directory: ${FILE_STORAGE_DIRECTORY:uploads}
 ```
 
-The API starts at `http://localhost:8080`.
+### Environment variables
 
-## How to Run Tests
+**Local (`dev`):**
 
 ```bash
-./gradlew test
+export SPRING_PROFILES_ACTIVE=dev
+export DB_URL=jdbc:postgresql://localhost:5432/library_db
+export DB_USERNAME=postgres
+export DB_PASSWORD=YOUR_SECRET
+export JWT_SECRET=YOUR_SECRET_AT_LEAST_32_CHARACTERS
+export ADMIN_INITIAL_PASSWORD=YOUR_SECRET
 ```
 
-## Build Command
+PowerShell:
+
+```powershell
+$env:SPRING_PROFILES_ACTIVE="dev"
+$env:DB_URL="jdbc:postgresql://localhost:5432/library_db"
+$env:DB_USERNAME="postgres"
+$env:DB_PASSWORD="YOUR_SECRET"
+$env:JWT_SECRET="YOUR_SECRET_AT_LEAST_32_CHARACTERS"
+$env:ADMIN_INITIAL_PASSWORD="YOUR_SECRET"
+```
+
+| Variable | Purpose |
+|----------|---------|
+| `SPRING_PROFILES_ACTIVE` | `dev` locally; `prod` on Render |
+| `DB_URL` | JDBC URL |
+| `DB_USERNAME` / `DB_PASSWORD` | PostgreSQL credentials |
+| `JWT_SECRET` | HMAC signing secret (≥ 32 characters) |
+| `ADMIN_INITIAL_PASSWORD` | Bootstrap ADMIN password (used only if that email does not exist) |
+| `CORS_ALLOWED_ORIGINS` | Dev browser origins (comma-separated) |
+
+Optional: `ADMIN_EMAIL`, `ADMIN_FULL_NAME`, `ADMIN_PASSWORD` (fallback if `ADMIN_INITIAL_PASSWORD` is unset), `JWT_ACCESS_EXPIRATION_MS`, `JWT_REFRESH_EXPIRATION_MS`, `FILE_*`, `CACHE_BOOKS_*`, `ASYNC_*`.
+
+**Production (Render):**
 
 ```bash
+SPRING_PROFILES_ACTIVE=prod
+DB_URL=jdbc:postgresql://YOUR_HOST:5432/library_db
+DB_USERNAME=YOUR_SECRET
+DB_PASSWORD=YOUR_SECRET
+JWT_SECRET=YOUR_SECRET_AT_LEAST_32_CHARACTERS
+FILE_STORAGE_DIRECTORY=/var/lib/library/uploads
+ADMIN_INITIAL_PASSWORD=YOUR_SECRET
+FRONTEND_ORIGIN=https://library-management-web-4tu2-woad.vercel.app
+```
+
+`FRONTEND_ORIGIN` is the Vercel origin with **no trailing slash**. `CORS_ALLOWED_ORIGINS` is only a fallback if `FRONTEND_ORIGIN` is unset. The Dockerfile sets `SPRING_PROFILES_ACTIVE=prod`.
+
+## Testing
+
+```bash
+./gradlew test    # Windows: .\gradlew.bat test
 ./gradlew build
 ```
 
-## Swagger / OpenAPI (required for review)
+The suite includes service unit tests (Mockito) and Spring `MockMvc` / `@SpringBootTest` tests against local PostgreSQL (`library_db`). Set `DB_PASSWORD` (and matching `DB_URL` / `DB_USERNAME` if you are not on the YAML defaults) before running tests.
 
-Swagger UI and the OpenAPI document are **public** (no JWT required to open them). Protected API endpoints still require JWT.
+## Deployment
 
-After starting the application, open:
+**Backend (Render):** multi-stage `Dockerfile` builds the Boot jar with Java 21 and runs it on a JRE as a non-root user, port 8080, profile `prod`. Attach a PostgreSQL database and set the production env vars above. Uploads live on the instance filesystem; they are **ephemeral** unless you add a persistent disk for `FILE_STORAGE_DIRECTORY`.
 
-- **Swagger UI:** http://localhost:8080/swagger-ui/index.html
-- **OpenAPI JSON:** http://localhost:8080/v3/api-docs
+**Frontend (Vercel):** set `VITE_API_ORIGIN` to this API origin (`https://library-management-api-8wiv.onrender.com`, no trailing slash).
 
-### Mentor quick start (authenticate in Swagger)
+**CORS:** Render `FRONTEND_ORIGIN` must be the Vercel origin with no trailing slash. A mismatch shows as `Invalid CORS request` in the browser. Local Vite must talk to **localhost:8080**, not Render, or production CORS will reject `http://localhost:5173`.
 
-1. Start the app (`./gradlew bootRun`) with a valid `DB_PASSWORD` for your local PostgreSQL.
-2. Open **Swagger UI** (link above). You can browse all endpoints without a token.
-3. Under **Authentication**, call **`POST /api/auth/register`** (or **`POST /api/auth/login`** if you already have a user).
-4. Copy the `accessToken` from the response.
-5. Click **Authorize** (lock icon), enter: `Bearer <accessToken>` (or only the token if the UI already prefixes `Bearer`), then confirm.
-6. Call any protected endpoint (Authors, Books, Members, Files, etc.). Requests will send the JWT automatically.
-
-Public auth endpoints (no JWT):
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/auth/register` | Register and receive access + refresh tokens |
-| POST | `/api/auth/login` | Login and receive access + refresh tokens |
-| POST | `/api/auth/refresh` | Exchange refresh token for a new token pair |
-
-Example register body:
-
-```json
-{
-  "fullName": "Jane Doe",
-  "email": "jane.doe@example.com",
-  "password": "SecurePass123"
-}
-```
-
-Example login body:
-
-```json
-{
-  "email": "jane.doe@example.com",
-  "password": "SecurePass123"
-}
-```
-
-### Security summary
-
-| Path | Access |
-|------|--------|
-| `/api/auth/**` | Public |
-| `/swagger-ui/**`, `/v3/api-docs/**` | Public (documentation only) |
-| `/api/admin/**` | JWT + **ADMIN** role |
-| `/api/user/**` | JWT + **USER** or **ADMIN** |
-| All other `/api/**` | JWT required |
-
-A Postman collection is **not** required for this submission because Swagger/OpenAPI covers interactive API exploration.
-
-### Admin user management
-
-Authenticated **ADMIN** users can manage linked login accounts from the web app **Members** page (`/members`), or via `/api/admin/users`. Role and blocked status live on the `User` entity, not `Member`. Responses never include passwords or password hashes.
-
-Account status is `ACTIVE` or `BLOCKED` (`V12__add_users_status.sql`). Block or unblock with `PATCH /api/admin/users/{id}/status` and body `{ "blocked": true }` or `{ "blocked": false }`. Blocked users cannot log in, cannot refresh tokens, and existing JWTs are rejected with **403** `Account is blocked`.
-
-Guards enforced on the backend:
-
-- USER and unauthenticated callers cannot use these endpoints (403 / 401).
-- An admin cannot change their own role, block themselves, or delete themselves (400).
-- The last remaining **ACTIVE** ADMIN cannot be demoted, blocked, or deleted (409).
-- Hard delete is refused with 409 when the linked member has borrow records; block the account instead.
-
-## Example API Endpoints
-
-| Method | Endpoint | Description | Status |
-|--------|----------|-------------|--------|
-| GET | `/api/authors` | List authors (paginated) | 200 |
-| GET | `/api/authors/{id}` | Get author by ID | 200 |
-| POST | `/api/authors` | Create author | 201 |
-| PUT | `/api/authors/{id}` | Update author | 200 |
-| DELETE | `/api/authors/{id}` | Delete author | 204 |
-| GET | `/api/books` | List books (paginated) | 200 |
-| GET | `/api/books/{id}` | Get book by ID | 200 |
-| POST | `/api/books` | Create book | 201 |
-| PUT | `/api/books/{id}` | Update book | 200 |
-| DELETE | `/api/books/{id}` | Delete book | 204 |
-| GET | `/api/admin/users` | List users (ADMIN, paginated; optional `q`, `role`, `status`) | 200 |
-| GET | `/api/admin/users/{id}` | Get user by ID (ADMIN) | 200 |
-| PATCH | `/api/admin/users/{id}/role` | Change user role (ADMIN) | 200 |
-| PATCH | `/api/admin/users/{id}/status` | Block or unblock a user (`{ "blocked": true \| false }`) (ADMIN) | 200 |
-| DELETE | `/api/admin/users/{id}` | Delete user (ADMIN; 409 if the linked member has loans) | 204 |
-| GET | `/api/members` | List members (paginated) | 200 |
-| GET | `/api/members/{id}` | Get member by ID | 200 |
-| POST | `/api/members` | Create member | 201 |
-| PUT | `/api/members/{id}` | Update member | 200 |
-| DELETE | `/api/members/{id}` | Delete member | 204 |
-| POST | `/api/files` | Upload file (multipart `file`) | 201 |
-| GET | `/api/files/{id}` | Download file by ID | 200 |
-
-### File upload / download
-
-- Allowed types: `image/jpeg`, `image/png`, `application/pdf` (configurable)
-- Max size: 10 MB by default (`FILE_MAX_SIZE`)
-- Storage: files on disk under `FILE_STORAGE_DIRECTORY`; metadata in the database
-- Auth: requires a valid JWT (same as other `/api/**` endpoints)
-- Cleanup: a scheduled job deletes orphaned files (on disk but not in `file_metadata`); enabled by default daily at 03:00 (`FILE_CLEANUP_ENABLED`, `FILE_CLEANUP_CRON`)
-
-Example upload (PowerShell):
-
-```powershell
-curl.exe -X POST "http://localhost:8080/api/files" `
-  -H "Authorization: Bearer $token" `
-  -F "file=@./document.pdf"
-```
-
-Example upload (bash):
-
-```bash
-curl -X POST "http://localhost:8080/api/files" \
-  -H "Authorization: Bearer $token" \
-  -F "file=@./document.pdf"
-```
-
-Download:
-
-```bash
-curl -L "http://localhost:8080/api/files/1" \
-  -H "Authorization: Bearer $token" \
-  -o downloaded.pdf
-```
-
-Pagination / sorting example:
+## Project Structure
 
 ```
-GET /api/authors?page=0&size=10&sort=name,asc
+src/main/java/com/library/
+├── config/          # CORS, OpenAPI, cache, async, admin bootstrap
+├── controller/      # REST
+├── dto/
+├── entity/
+├── exception/       # GlobalExceptionHandler + ErrorResponse
+├── mapper/
+├── repository/
+├── scheduler/       # Orphan file cleanup
+├── security/        # JWT filter, SecurityConfig
+├── service/         # Business logic + storage/
+└── LibraryManagementApiApplication.java
+src/main/resources/
+├── application.yml
+├── application-dev.yml
+├── application-prod.yml
+└── db/migration/    # Flyway V1–V12
+Dockerfile
 ```
 
-Example create author request body:
+## Demo Account
 
-```json
-{
-  "name": "Ali Safarli"
-}
-```
-
-Example create book request body:
-
-```json
-{
-  "title": "Harry Potter and the Philosopher's Stone",
-  "isbn": "9780747532699",
-  "publishedYear": 1997,
-  "authorId": 1
-}
-```
-
-Example create member request body:
-
-```json
-{
-  "name": "Omar Ismayilov",
-  "email": "omar.ismayilov@gmail.com"
-}
-```
-
-## Layered Architecture Overview
-
-```
-Controller → Service → Repository → Database
-```
-
-- **Controller** — HTTP mapping, validation trigger (`@Valid`), returns DTOs
-- **Service** — Business logic, entity ↔ DTO mapping, not-found handling
-- **Repository** — Database access via Spring Data JPA
-- **Entity** — Persistence model (not exposed by the API)
-- **DTO** — Request/response payload model
-
-
+A bootstrap **ADMIN** is created on first startup for `ADMIN_EMAIL` (config default: `alisafarli@gmail.com`) using `ADMIN_INITIAL_PASSWORD`. The password is not published here. Register your own `USER` from the live app, or set a local admin password in the environment.

@@ -196,22 +196,31 @@ class MemberServiceTest {
 
 	@Test
 	void delete_whenMemberExists_deletesMember() {
-		// Arrange
 		when(memberRepository.existsById(1L)).thenReturn(true);
+		when(loanRepository.existsByMember_Id(1L)).thenReturn(false);
 
-		// Act
 		memberService.delete(1L);
 
-		// Assert
 		verify(memberRepository).deleteById(1L);
 	}
 
 	@Test
+	void delete_whenMemberHasBorrowRecords_throwsConflictException() {
+		when(memberRepository.existsById(1L)).thenReturn(true);
+		when(loanRepository.existsByMember_Id(1L)).thenReturn(true);
+
+		ConflictException exception = assertThrows(
+				ConflictException.class,
+				() -> memberService.delete(1L)
+		);
+		assertEquals("Member cannot be deleted because borrow records exist", exception.getMessage());
+		verify(memberRepository, never()).deleteById(any());
+	}
+
+	@Test
 	void delete_whenMemberDoesNotExist_throwsResourceNotFoundException() {
-		// Arrange
 		when(memberRepository.existsById(99L)).thenReturn(false);
 
-		// Act & Assert
 		ResourceNotFoundException exception = assertThrows(
 				ResourceNotFoundException.class,
 				() -> memberService.delete(99L)

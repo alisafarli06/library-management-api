@@ -29,6 +29,7 @@ class ApplicationConfigurationProfileTest {
 		assertTrue(prodYaml.contains("${DB_URL}"));
 		assertTrue(prodYaml.contains("${DB_USERNAME}"));
 		assertTrue(prodYaml.contains("${FILE_STORAGE_DIRECTORY}"));
+		assertTrue(prodYaml.contains("port: ${PORT:8080}"));
 		assertTrue(prodYaml.contains("${FRONTEND_ORIGIN:${CORS_ALLOWED_ORIGINS}}"));
 		assertTrue(prodYaml.contains("${ADMIN_INITIAL_PASSWORD:${ADMIN_PASSWORD}}"));
 		assertTrue(prodYaml.contains("${ADMIN_PASSWORD}"));

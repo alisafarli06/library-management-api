@@ -77,6 +77,7 @@ Registration always creates `USER`. An `ADMIN` is bootstrapped on startup from `
 | Path | Who |
 |------|-----|
 | `/api/auth/register`, `/login`, `/refresh` | Public |
+| `/api/health`, `/health` | Public (liveness) |
 | `/swagger-ui/**`, `/v3/api-docs/**` | Public |
 | `GET /api/books/**`, `GET /api/authors/**`, `GET /api/files/**` | Authenticated |
 | `/api/user/**` | `USER` or `ADMIN` |
@@ -116,6 +117,7 @@ List/search endpoints accept Spring Data `page`, `size`, and `sort` (example: `s
 
 | Method | Path | Notes |
 |--------|------|--------|
+| GET | `/api/health` | Public liveness (`{"status":"UP"}`); also `/health` |
 | POST | `/api/auth/register` | Public; role `USER` |
 | POST | `/api/auth/login` | Public |
 | POST | `/api/auth/refresh` | Public |
@@ -269,6 +271,7 @@ Optional: `ADMIN_EMAIL`, `ADMIN_FULL_NAME`, `ADMIN_PASSWORD` (fallback if `ADMIN
 
 ```bash
 SPRING_PROFILES_ACTIVE=prod
+PORT=8080
 DB_URL=jdbc:postgresql://YOUR_HOST:5432/library_db
 DB_USERNAME=YOUR_SECRET
 DB_PASSWORD=YOUR_SECRET
@@ -278,7 +281,7 @@ ADMIN_INITIAL_PASSWORD=YOUR_SECRET
 FRONTEND_ORIGIN=https://library-management-web-4tu2-woad.vercel.app
 ```
 
-`FRONTEND_ORIGIN` is the Vercel origin with **no trailing slash**. `CORS_ALLOWED_ORIGINS` is only a fallback if `FRONTEND_ORIGIN` is unset. The Dockerfile sets `SPRING_PROFILES_ACTIVE=prod`.
+`FRONTEND_ORIGIN` is the Vercel origin with **no trailing slash**. `CORS_ALLOWED_ORIGINS` is only a fallback if `FRONTEND_ORIGIN` is unset. The Dockerfile sets `SPRING_PROFILES_ACTIVE=prod`, creates a writable `/var/lib/library/uploads` directory for the non-root user, and defaults `FILE_STORAGE_DIRECTORY` to that path (override on Render if you mount a persistent disk elsewhere). `server.port` binds to `PORT` (default `8080`) for PaaS compatibility.
 
 ## Testing
 
@@ -291,12 +294,13 @@ The suite includes service unit tests (Mockito) and Spring `MockMvc` / `@SpringB
 
 ## Deployment
 
-**Backend (Render):** multi-stage `Dockerfile` builds the Boot jar with Java 21 and runs it on a JRE as a non-root user, port 8080, profile `prod`. Attach a PostgreSQL database and set the production env vars above. Uploads live on the instance filesystem; they are **ephemeral** unless you add a persistent disk for `FILE_STORAGE_DIRECTORY`.
+**Backend (Render):** multi-stage `Dockerfile` builds the Boot jar with Java 21 and runs it on a JRE as a non-root `spring` user, profile `prod`, listening on `PORT` (8080 by default). Attach a PostgreSQL database and set the production env vars above. Use `GET /api/health` as a health check path. Uploads live under `FILE_STORAGE_DIRECTORY` on the instance filesystem; they are **ephemeral** on the free tier unless you attach a persistent disk to that path.
 
 **Frontend (Vercel):** set `VITE_API_ORIGIN` to this API origin (`https://library-management-api-8wiv.onrender.com`, no trailing slash).
 
 **CORS:** Render `FRONTEND_ORIGIN` must be the Vercel origin with no trailing slash. A mismatch shows as `Invalid CORS request` in the browser. Local Vite must talk to **localhost:8080**, not Render, or production CORS will reject `http://localhost:5173`.
 
+**Cold start:** on the Render free tier the service may sleep; the first request (or opening Swagger / `/api/health`) can take 30–60+ seconds before the API answers. That appears in the browser as `Failed to fetch` until the service is awake.
 ## Project Structure
 
 ```

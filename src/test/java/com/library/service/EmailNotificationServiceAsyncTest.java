@@ -27,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 })
 @TestPropertySource(properties = {
 		"app.async.notification.delay-ms=1000",
+		"app.async.notification.simulate-failure=false",
 		"app.async.executor.core-pool-size=2",
 		"app.async.executor.max-pool-size=4",
 		"app.async.executor.queue-capacity=100"
@@ -75,11 +76,12 @@ class EmailNotificationServiceAsyncTest {
 
 	@Test
 	void sendWelcomeEmail_failureDoesNotMarkAsSent() throws Exception {
-		String email = "fail@" + UUID.randomUUID() + ".library.com";
+		EmailNotificationService failingService = new EmailNotificationService(50, true, notificationTracker);
+		String email = "async-fail-" + UUID.randomUUID() + "@library.com";
 
-		emailNotificationService.sendWelcomeEmail(email, "Failing User");
+		failingService.sendWelcomeEmail(email, "Failing User");
 
-		TimeUnit.MILLISECONDS.sleep(1_500);
+		TimeUnit.MILLISECONDS.sleep(200);
 		assertFalse(notificationTracker.wasWelcomeEmailSent(email));
 	}
 

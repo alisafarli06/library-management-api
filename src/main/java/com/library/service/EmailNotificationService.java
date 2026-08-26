@@ -16,12 +16,15 @@ public class EmailNotificationService {
 	private static final Logger log = LoggerFactory.getLogger(EmailNotificationService.class);
 
 	private final long simulationDelayMs;
+	private final boolean simulateFailure;
 	private final AsyncNotificationTracker notificationTracker;
 
 	public EmailNotificationService(
 			@Value("${app.async.notification.delay-ms:500}") long simulationDelayMs,
+			@Value("${app.async.notification.simulate-failure:false}") boolean simulateFailure,
 			AsyncNotificationTracker notificationTracker) {
 		this.simulationDelayMs = simulationDelayMs;
+		this.simulateFailure = simulateFailure;
 		this.notificationTracker = notificationTracker;
 	}
 
@@ -36,7 +39,7 @@ public class EmailNotificationService {
 			if (simulationDelayMs > 0) {
 				Thread.sleep(simulationDelayMs);
 			}
-			if (toEmail != null && toEmail.startsWith("fail@")) {
+			if (simulateFailure) {
 				throw new IllegalStateException("Simulated email provider failure");
 			}
 			notificationTracker.markWelcomeEmailSent(toEmail);
@@ -44,6 +47,8 @@ public class EmailNotificationService {
 		} catch (InterruptedException ex) {
 			Thread.currentThread().interrupt();
 			log.warn("Welcome email simulation interrupted for {}", toEmail);
+		} catch (RuntimeException ex) {
+			log.warn("Welcome email simulation failed for {}: {}", toEmail, ex.getMessage());
 		}
 	}
 }

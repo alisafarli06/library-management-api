@@ -1,4 +1,8 @@
 # Production profile — secrets MUST be supplied via environment variables (no unsafe defaults)
+server:
+  # Render (and many PaaS hosts) inject PORT; default keeps local Docker on 8080.
+  port: ${PORT:8080}
+
 spring:
   datasource:
     url: ${DB_URL}

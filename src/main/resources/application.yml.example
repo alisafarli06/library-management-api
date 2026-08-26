@@ -74,9 +74,12 @@ app:
 #   DB_USERNAME
 #   DB_PASSWORD
 #   JWT_SECRET
-#   FILE_STORAGE_DIRECTORY
+#   FILE_STORAGE_DIRECTORY   (Dockerfile defaults to /var/lib/library/uploads)
 #   ADMIN_INITIAL_PASSWORD (or ADMIN_PASSWORD)
 #   FRONTEND_ORIGIN (Vercel origin, e.g. https://your-app.vercel.app)
+# Optional:
+#   PORT                     (default 8080; Render injects this)
 #
 # Flyway manages schema (classpath:db/migration). Hibernate ddl-auto is validate.
+# Liveness: GET /api/health or GET /health
 # -----------------------------------------------------------------------------

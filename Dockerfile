@@ -16,7 +16,10 @@ RUN ./gradlew bootJar --no-daemon -x test
 FROM eclipse-temurin:21-jre
 WORKDIR /app
 
-RUN addgroup --system spring && adduser --system --ingroup spring spring
+RUN addgroup --system spring && adduser --system --ingroup spring spring \
+	&& mkdir -p /var/lib/library/uploads \
+	&& chown -R spring:spring /var/lib/library
+
 COPY --from=build /app/build/libs/*.jar app.jar
 RUN chown spring:spring app.jar
 
@@ -24,6 +27,7 @@ USER spring
 EXPOSE 8080
 
 ENV SPRING_PROFILES_ACTIVE=prod
+ENV FILE_STORAGE_DIRECTORY=/var/lib/library/uploads
 ENV JAVA_OPTS=""
 
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/app.jar"]

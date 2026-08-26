@@ -13,11 +13,16 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
+/**
+ * Dev CORS: local Vite origins stay allowed even when FRONTEND_ORIGIN is set
+ * (Render/Vercel env leaked into a local process).
+ */
+@SpringBootTest(properties = "FRONTEND_ORIGIN=https://library-management-web-4tu2-woad.vercel.app")
 @AutoConfigureMockMvc
 @ActiveProfiles("dev")
 class CorsDevPreflightTest {
@@ -61,6 +66,27 @@ class CorsDevPreflightTest {
 				.andExpect(status().isOk())
 				.andExpect(content().string(not(containsString("Invalid CORS request"))))
 				.andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, LOOPBACK));
+	}
+
+	@Test
+	void preflightForProtectedRouteIsAllowedWithoutJwt() throws Exception {
+		mockMvc.perform(options("/api/admin/users")
+						.header(HttpHeaders.ORIGIN, LOCALHOST)
+						.header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "GET")
+						.header(HttpHeaders.ACCESS_CONTROL_REQUEST_HEADERS, "authorization,content-type"))
+				.andExpect(status().isOk())
+				.andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, LOCALHOST));
+	}
+
+	@Test
+	void loginResponseIncludesCorsHeadersForAllowedOrigin() throws Exception {
+		mockMvc.perform(post("/api/auth/login")
+						.header(HttpHeaders.ORIGIN, LOCALHOST)
+						.header(HttpHeaders.CONTENT_TYPE, "application/json")
+						.content("""
+								{"email":"nobody@library.com","password":"Password123"}
+								"""))
+				.andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, LOCALHOST));
 	}
 
 	@Test

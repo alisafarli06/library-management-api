@@ -29,7 +29,8 @@ public class OpenApiConfig {
 
 								**Public endpoints:** `POST /api/auth/register`, `POST /api/auth/login`, \
 								and `POST /api/auth/refresh` (no JWT required). \
-								`POST /api/auth/change-password` requires authentication.
+								`POST /api/auth/change-password` requires authentication. \
+								`GET /api/health` (and `GET /health`) are public liveness probes.
 
 								**Role-restricted endpoints:**
 								- `/api/admin/**` — ADMIN role only (includes `/api/admin/analytics/**`)
@@ -49,6 +50,7 @@ public class OpenApiConfig {
 				.tags(List.of(
 						new Tag().name("Authentication")
 								.description("Registration, login, and token refresh (public)"),
+						new Tag().name("Health").description("Public liveness probe"),
 						new Tag().name("Authors").description("Author CRUD operations (JWT required)"),
 						new Tag().name("Books").description("Book CRUD and search (JWT required)"),
 						new Tag().name("Members").description("Member CRUD and book borrowing (JWT required)"),

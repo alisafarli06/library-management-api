@@ -92,6 +92,9 @@ public class MemberService {
 		if (!memberRepository.existsById(id)) {
 			throw new ResourceNotFoundException("Member not found with id: " + id);
 		}
+		if (loanRepository.existsByMember_Id(id)) {
+			throw new ConflictException("Member cannot be deleted because borrow records exist");
+		}
 		memberRepository.deleteById(id);
 	}
 
